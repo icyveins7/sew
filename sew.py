@@ -26,7 +26,7 @@ class CommonRedirectMixin:
         self.fetchone = self.cur.fetchone
         self.fetchall = self.cur.fetchall
         
-#%% Mixin that contains the helper methods for statement generation
+#%% Mixin that contains the helper methods for statement generation. Note that this builds off the standard format.
 class StatementGeneratorMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -37,11 +37,14 @@ class StatementGeneratorMixin:
     def _makeTableConditions(self, fmt: dict):
         return ', '.join(fmt['conds'])
     
-    def _makeTableStatement(self, fmt: dict):
-        return "%s, %s" % (
-                self._makeTableColumns(fmt),
-                self._makeTableConditions(fmt)
-            )
+    def _makeTableStatement(self, fmt: dict, tablename: str, ifNotExists: bool=False):
+        stmt = "create table%s %s(%s%s)" % (
+            " if not exists" if ifNotExists else '',
+            tablename,
+            self._makeTableColumns(fmt),
+            ", %s" % (self._makeTableConditions(fmt)) if len(fmt['conds']) > 0 else ''
+        )
+        return stmt
     
     def _makeQuestionMarks(self, fmt: dict):
         return ','.join(["?"] * len(fmt['cols']))
@@ -52,14 +55,22 @@ class StatementGeneratorMixin:
     def _makeSelectStatement(self,
                              tablename: str,
                              columnNames: list,
-                             conditions: list=None):
+                             conditions: list=None,
+                             orderBy: list=None):
+        # Parse columns into comma separated string
         columns = ','.join(columnNames) if isinstance(columnNames, list) else columnNames
+        # Parse conditions with additional where keyword
         conditions = [conditions] if isinstance(conditions, str) else conditions # Turn into a list if supplied as a single string
         conditions = ' where ' + ' and '.join(conditions) if isinstance(conditions, list) else ''
-        stmt = "select %s from %s%s" % (
+        # Parse order by as comma separated string and pad the order by keywords
+        orderBy = [orderBy] if isinstance(orderBy, str) else orderBy
+        orderBy = ' order by %s' % (','.join(orderBy)) if isinstance(orderBy, list) else ''
+        # Create the statement
+        stmt = "select %s from %s%s%s" % (
                 columns,
                 tablename,
-                conditions
+                conditions,
+                orderBy
             )
         return stmt
     
@@ -81,3 +92,27 @@ class Database(CommonRedirectMixin, StatementGeneratorMixin, SqliteContainer):
 #%%
 if __name__ == "__main__":
     d = Database(":memory:")
+    tablename = "tablename"
+    columnNames = ["col1", "col2"]
+    conditions = ["col1 > ?", "col2 > ?"]
+    orderBy = "col1 desc"
+    
+    print(d._makeSelectStatement(tablename, columnNames))
+    print(d._makeSelectStatement(tablename, columnNames, conditions, orderBy))
+    
+    fmt = {
+        'cols': [
+            ["col1", "INTEGER"],
+            ["col2", "REAL"]
+        ],
+        'conds': [
+            'UNIQUE(col1, col2)'    
+        ]
+    }
+    
+    print(d._makeTableStatement(fmt, 'newtable', True))
+    
+    # Test with no conditions
+    fmt['conds'] = []
+    print(d._makeTableStatement(fmt, 'newtable', True))
+    
