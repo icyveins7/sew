@@ -37,10 +37,10 @@ class StatementGeneratorMixin:
     def _makeTableConditions(self, fmt: dict):
         return ', '.join(fmt['conds'])
     
-    def _makeTableStatement(self, fmt: dict, tablename: str, ifNotExists: bool=False):
+    def _makeTableStatement(self, fmt: dict, tablename: str, ifNotExists: bool=False, encloseTableName: bool=False):
         stmt = "create table%s %s(%s%s)" % (
             " if not exists" if ifNotExists else '',
-            tablename,
+            '"%s"' % tablename if encloseTableName else tablename,
             self._makeTableColumns(fmt),
             ", %s" % (self._makeTableConditions(fmt)) if len(fmt['conds']) > 0 else ''
         )
