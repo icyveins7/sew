@@ -82,9 +82,27 @@ class StatementGeneratorMixin:
             )
         return stmt
     
+#%% We will not assume the CommonRedirectMixins here
+class CommonMethodMixin(StatementGeneratorMixin):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+    def createTable(self, fmt: dict, tablename: str, ifNotExists: bool=False, encloseTableName: bool=False, commitNow: bool=True):
+        self.execute(self._makeTableStatement(fmt, tablename, ifNotExists, encloseTableName))
+        if commitNow:
+            self.con.commit()
+            
+    def getTablenames(self):
+        stmt = self._makeSelectStatement("sqlite_master", "name",
+                                         conditions=["type='table'"])
+        self.execute(stmt)
+        results = self.cur.fetchall() # Is a list of length 1 tuples
+        results = [i[0] for i in results]
+        return results
+    
 
 #%% Inherited class of all the above
-class Database(CommonRedirectMixin, StatementGeneratorMixin, SqliteContainer):
+class Database(CommonRedirectMixin, CommonMethodMixin, SqliteContainer):
     def __init__(self, dbpath: str):
         super().__init__(dbpath)
 
@@ -115,4 +133,9 @@ if __name__ == "__main__":
     # Test with no conditions
     fmt['conds'] = []
     print(d._makeTableStatement(fmt, 'newtable', True))
+    
+    # Test making the tables
+    d.createTable(fmt, 'table1')
+    d.createTable(fmt, 'table2')
+    print(d.getTablenames())
     
