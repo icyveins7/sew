@@ -9,9 +9,10 @@ import sqlite3 as sq
 
 #%% Basic container, the most barebones
 class SqliteContainer:
-    def __init__(self, dbpath: str):
+    def __init__(self, dbpath: str, row_factory: type=sq.Row):
         self.dbpath = dbpath
         self.con = sq.connect(dbpath)
+        self.con.row_factory = row_factory
         self.cur = self.con.cursor()
         
 #%% Mixin to redirect common sqlite methods for brevity in code later
@@ -148,14 +149,11 @@ if __name__ == "__main__":
         ]
     }
     
-    print(d._makeCreateTableStatement(fmt, 'newtable', True))
+    # Test making tables
+    d.createTable(fmt, 'table1')
     
     # Test with no conditions
     fmt['conds'] = []
-    print(d._makeCreateTableStatement(fmt, 'newtable', True))
-    
-    # Test making the tables
-    d.createTable(fmt, 'table1')
     d.createTable(fmt, 'table2')
     print(d.getTablenames())
     
@@ -164,6 +162,6 @@ if __name__ == "__main__":
     print(d._makeDeleteStatement('table1', ['col1 < 10']))
     
     # Test dropping a table
-    d.dropTable('table1', True)
+    d.dropTable('table2', True)
     print(d.getTablenames())
     

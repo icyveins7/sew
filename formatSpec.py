@@ -5,6 +5,8 @@ Created on Mon Dec 19 16:41:17 2022
 @author: seo
 """
 
+import re
+
 class FormatSpecifier:
     sqliteTypes = {
         int: "INTEGER",
@@ -12,8 +14,8 @@ class FormatSpecifier:
         str: "TEXT"
     }
     
-    def __init__(self, *args, **kwargs):
-        self.fmt = {'cols': [], 'conds': []}
+    def __init__(self, cols: list=[], conds: list=[]):
+        self.fmt = {'cols': cols, 'conds': conds}
         
     def clear(self):
         self.fmt = {'cols': [], 'conds': []}
@@ -31,6 +33,18 @@ class FormatSpecifier:
         
     def generate(self):
         return self.fmt
+    
+    @classmethod
+    def fromSql(cls, stmt: str):
+        # Pull out everything after tablename, remove parentheses
+        fmtstr = re.search("\(.+\)", stmt).group()[1:-1]
+        # Remove any uniques
+        uniques = re.search("unique\(.+\)", fmtstr, flags=re.IGNORECASE) # TODO: iterate over all unique groups
+        fmtstr.replace(uniques.group(), "")
+        # Split into each column (may contain blanks)
+        fmtstrs = fmtstr.split(",")
+        # TODO: complete
+        
 
 #%%
 if __name__ == "__main__":
