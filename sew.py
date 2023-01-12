@@ -32,41 +32,47 @@ class StatementGeneratorMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
     
-    def _makeTableColumns(self, fmt: dict):
+    @staticmethod
+    def _makeTableColumns(fmt: dict):
         return ', '.join([' '.join(i) for i in fmt['cols']])
     
-    def _makeTableConditions(self, fmt: dict):
+    @staticmethod
+    def _makeTableConditions(fmt: dict):
         return ', '.join(fmt['conds'])
     
-    def _makeCreateTableStatement(self, fmt: dict, tablename: str, ifNotExists: bool=False, encloseTableName: bool=False):
+    @staticmethod
+    def _makeCreateTableStatement(fmt: dict, tablename: str, ifNotExists: bool=False, encloseTableName: bool=False):
         stmt = "create table%s %s(%s%s)" % (
             " if not exists" if ifNotExists else '',
             '"%s"' % tablename if encloseTableName else tablename,
-            self._makeTableColumns(fmt),
-            ", %s" % (self._makeTableConditions(fmt)) if len(fmt['conds']) > 0 else ''
+            StatementGeneratorMixin._makeTableColumns(fmt),
+            ", %s" % (StatementGeneratorMixin._makeTableConditions(fmt)) if len(fmt['conds']) > 0 else ''
         )
         return stmt
     
-    def _makeQuestionMarks(self, fmt: dict):
+    @staticmethod
+    def _makeQuestionMarks(fmt: dict):
         return ','.join(["?"] * len(fmt['cols']))
     
-    def _makeNotNullConditionals(self, cols: dict):
+    @staticmethod
+    def _makeNotNullConditionals(cols: dict):
         return ' and '.join(("%s is not null" % (i[0]) for i in cols))
     
-    def _stitchConditions(self, conditions: list):
+    @staticmethod
+    def _stitchConditions(conditions: list):
         conditionsList = [conditions] if isinstance(conditions, str) else conditions # Turn into a list if supplied as a single string
         conditionsStr = ' where ' + ' and '.join(conditionsList) if isinstance(conditionsList, list) else ''
         return conditionsStr
     
-    def _makeSelectStatement(self,
-                             tablename: str,
+    @staticmethod
+    def _makeSelectStatement(tablename: str,
                              columnNames: list,
                              conditions: list=None,
                              orderBy: list=None):
         # Parse columns into comma separated string
         columns = ','.join(columnNames) if isinstance(columnNames, list) else columnNames
         # Parse conditions with additional where keyword
-        conditions = self._stitchConditions(conditions)
+        conditions = StatementGeneratorMixin._stitchConditions(conditions)
         # Parse order by as comma separated string and pad the order by keywords
         orderBy = [orderBy] if isinstance(orderBy, str) else orderBy
         orderBy = ' order by %s' % (','.join(orderBy)) if isinstance(orderBy, list) else ''
@@ -79,22 +85,25 @@ class StatementGeneratorMixin:
             )
         return stmt
     
-    def _makeInsertStatement(self, tablename: str, fmt: dict, orReplace: bool=False):
+    @staticmethod
+    def _makeInsertStatement(tablename: str, fmt: dict, orReplace: bool=False):
         stmt = "insert%s into %s values(%s)" % (
                 " or replace" if orReplace else '',
                 tablename,
-                self._makeQuestionMarks(fmt)
+                StatementGeneratorMixin._makeQuestionMarks(fmt)
             )
         return stmt
     
-    def _makeDropStatement(self, tablename: str):
+    @staticmethod
+    def _makeDropStatement(tablename: str):
         stmt = "drop table %s" % tablename
         return stmt
     
-    def _makeDeleteStatement(self, tablename: str, conditions: list=None):
+    @staticmethod
+    def _makeDeleteStatement(tablename: str, conditions: list=None):
         stmt = "delete from %s%s" % (
             tablename,
-            self._stitchConditions(conditions)
+            StatementGeneratorMixin._stitchConditions(conditions)
         )
         return stmt
     
