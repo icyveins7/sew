@@ -6,6 +6,9 @@ Created on Mon Dec  5 17:23:06 2022
 """
 
 import sqlite3 as sq
+import re
+
+from formatSpec import FormatSpecifier
 
 #%% Basic container, the most barebones
 class SqliteContainer:
@@ -65,8 +68,8 @@ class StatementGeneratorMixin:
         return conditionsStr
     
     @staticmethod
-    def _makeSelectStatement(tablename: str,
-                             columnNames: list,
+    def _makeSelectStatement(columnNames: list,
+                             tablename: str,
                              conditions: list=None,
                              orderBy: list=None):
         # Parse columns into comma separated string
@@ -112,6 +115,9 @@ class CommonMethodMixin(StatementGeneratorMixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
+        self._tables = dict()
+        self.reloadTables()
+        
     def createTable(self, fmt: dict, tablename: str, ifNotExists: bool=False, encloseTableName: bool=False, commitNow: bool=True):
         self.cur.execute(self._makeCreateTableStatement(fmt, tablename, ifNotExists, encloseTableName))
         if commitNow:
@@ -122,14 +128,140 @@ class CommonMethodMixin(StatementGeneratorMixin):
         if commitNow:
             self.con.commit()
             
-    def getTablenames(self):
-        stmt = self._makeSelectStatement("sqlite_master", "name",
+    def reloadTables(self):
+        stmt = self._makeSelectStatement(["name","sql"], "sqlite_master",
                                          conditions=["type='table'"])
         self.cur.execute(stmt)
-        results = self.cur.fetchall() # Is a list of length 1 tuples
-        results = [i[0] for i in results]
+        results = self.cur.fetchall()
+        self._tables.clear()
+        for result in results:
+            self._tables[result[0]] = TableProxy(self, result[0],
+                                                      FormatSpecifier.fromSql(result[1]).generate())
+            
         return results
     
+    ### These are useful methods to direct calls to a table or query tables
+    def __getitem__(self, tablename: str):
+        return self._tables[tablename]
+            
+    @property
+    def tablenames(self):
+        return list(self._tables.keys())
+    
+    @property
+    def tables(self):
+        return self._tables
+    
+#%% Akin to configparser, we create a class for tables
+class TableProxy(StatementGeneratorMixin):
+    def __init__(self, parent: SqliteContainer, tbl: str, fmt: dict):
+        self._parent = parent # We redirect calls to the parent
+        self._tbl = tbl # The tablename
+        self._fmt = fmt
+        self._cols = self._populateColumns()
+        
+    def _populateColumns(self):
+        cols = dict()
+        # typehints = 
+        for col in self._fmt['cols']:
+            colname = col[0]
+            # Parse the type (note that we cannot determine the upper/lowercase)
+            if re.match(r"int", col[1], flags=re.IGNORECASE): # All the versions have the substring 'int', so this works
+                cols[colname] = ColumnProxy(colname, int)
+            elif re.match(r"text", col[1], flags=re.IGNORECASE) or re.match(r"char", col[1], flags=re.IGNORECASE):
+                cols[colname] = ColumnProxy(colname, str)
+            elif re.match(r"real", col[1], flags=re.IGNORECASE) or re.match(r"double", col[1], flags=re.IGNORECASE) or re.match(r"float", col[1], flags=re.IGNORECASE):
+                cols[colname] = ColumnProxy(colname, float)
+            else:
+                raise NotImplementedError("Unknown parse for sql type %s" % col[1])
+            
+        return cols
+    
+    def __getitem__(self, col: str):
+        return self._cols[col]
+    
+    @property
+    def columns(self):
+        return self._cols
+    
+    @property
+    def columnNames(self):
+        return list(self._cols.keys())
+ 
+    ### These are the actual user methods
+    def select(self,
+               columnNames: list,
+               conditions: list=None,
+               orderBy: list=None):
+        
+        stmt = self._makeSelectStatement(
+            columnNames,
+            self._tbl,
+            conditions,
+            orderBy
+        )
+        self._parent.cur.execute(stmt)
+        return stmt
+    
+    def insertOne(self, *args, orReplace: bool=False, commitNow: bool=False):
+        '''Note that this assumes all columns are inserted, and in order.'''
+        stmt = self._makeInsertStatement(
+            self._tbl, self._fmt, orReplace
+        )
+        self._parent.cur.execute(stmt, (args))
+        if commitNow:
+            self.con.commit()
+        return stmt
+        
+    def insertMany(self, *args, orReplace: bool=False, commitNow: bool=False):
+        '''Note that this assumes all columns are inserted, and in order.'''
+        stmt = self._makeInsertStatement(
+            self._tbl, self._fmt, orReplace
+        )
+        # Handle a special common case where a generator is passed
+        if hasattr(args[0], "__next__"): # We use this to test if its a generator, without any other imports (may not be the best solution but works for majority of cases)
+            self._parent.cur.executemany(stmt, args[0])
+        else: # Otherwise its just plain old data
+            self._parent.cur.executemany(stmt, args)
+        if commitNow:
+            self.con.commit()
+        return stmt
+
+#%% And also a class for columns
+### TODO: Intention for this is to build it into a way to automatically generate conditions in select statements..
+class ColumnProxy:
+    def __init__(self, name: str, typehint: type):
+        self.name = name
+        self.typehint = typehint
+        
+    def _requireType(self, x):
+        if not isinstance(x, self.typehint):
+            raise TypeError("Compared value must be of type %s" % str(self.typehint))
+        
+    def __lt__(self, x):
+        self._requireType(x)
+        return "%s < %s" % (self.name, str(x))
+
+    def __le__(self, x):
+        self._requireType(x)
+        return "%s <= %s" % (self.name, str(x))
+    
+    def __gt__(self, x):
+        self._requireType(x)
+        return "%s > %s" % (self.name, str(x))
+
+    def __ge__(self, x):
+        self._requireType(x)
+        return "%s >= %s" % (self.name, str(x))
+    
+    def __eq__(self, x):
+        self._requireType(x)
+        return "%s = %s" % (self.name, str(x))
+    
+    def __ne__(self, x):
+        self._requireType(x)
+        return "%s != %s" % (self.name, str(x))
+
 
 #%% Inherited class of all the above
 class Database(CommonRedirectMixin, CommonMethodMixin, SqliteContainer):
@@ -145,13 +277,13 @@ if __name__ == "__main__":
     conditions = ["col1 > ?", "col2 > ?"]
     orderBy = "col1 desc"
     
-    print(d._makeSelectStatement(tablename, columnNames))
-    print(d._makeSelectStatement(tablename, columnNames, conditions, orderBy))
+    print(d._makeSelectStatement(columnNames, tablename))
+    print(d._makeSelectStatement(columnNames, tablename, conditions, orderBy))
     
     fmt = {
         'cols': [
-            ["col1", "INTEGER"],
-            ["col2", "REAL"]
+            ["col1", "integer"],
+            ["col2", "DOUBLE"]
         ],
         'conds': [
             'UNIQUE(col1, col2)'    
@@ -164,7 +296,9 @@ if __name__ == "__main__":
     # Test with no conditions
     fmt['conds'] = []
     d.createTable(fmt, 'table2')
-    print(d.getTablenames())
+    # Reload tables to populate internal dict then query
+    d.reloadTables()
+    print(d.tablenames)
     
     # Test delete statements
     print(d._makeDeleteStatement('table1'))
@@ -172,5 +306,14 @@ if __name__ == "__main__":
     
     # Test dropping a table
     d.dropTable('table2', True)
-    print(d.getTablenames())
+    d.reloadTables()
+    print(d.tablenames)
+    
+    # Test inserting into table with dict-like access
+    print(d['table1'].insertMany((i, float(i+1)) for i in range(10)))
+    # Then check our results
+    print(d['table1'].select("*"))
+    results = d.fetchall()
+    for result in results:
+        print(result[0], result[1])
     
