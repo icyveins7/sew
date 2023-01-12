@@ -13,6 +13,17 @@ from formatSpec import FormatSpecifier
 #%% Basic container, the most barebones
 class SqliteContainer:
     def __init__(self, dbpath: str, row_factory: type=sq.Row):
+        '''
+        Instantiates an sqlite database container.
+
+        Parameters
+        ----------
+        dbpath : str
+            The database to connect to (either a filepath or ":memory:").
+            See sqlite3.connect() for more information.
+        row_factory : type, optional
+            The row factory for the sqlite3 connection. The default is the in-built sqlite3.Row.
+        '''
         self.dbpath = dbpath
         self.con = sq.connect(dbpath)
         self.con.row_factory = row_factory
@@ -21,6 +32,9 @@ class SqliteContainer:
 #%% Mixin to redirect common sqlite methods for brevity in code later
 class CommonRedirectMixin:
     def __init__(self, *args, **kwargs):
+        '''
+        Provides several redirects to common methods, just to have shorter code.
+        '''
         super().__init__(*args, **kwargs)
         
         self.close = self.con.close
@@ -113,22 +127,65 @@ class StatementGeneratorMixin:
 #%% We will not assume the CommonRedirectMixins here
 class CommonMethodMixin(StatementGeneratorMixin):
     def __init__(self, *args, **kwargs):
+        '''
+        Includes common methods to create and drop tables, and provides
+        dictionary-like access to all tables currently in the database.
+        Also includes internal methods for statement generation.
+        '''
         super().__init__(*args, **kwargs)
         
         self._tables = dict()
         self.reloadTables()
         
     def createTable(self, fmt: dict, tablename: str, ifNotExists: bool=False, encloseTableName: bool=False, commitNow: bool=True):
+        '''
+        Creates a new table.
+
+        Parameters
+        ----------
+        fmt : dict
+            Dictionary of column names/types and special conditions that characterises the table.
+            The easiest way to generate this is to instantiate a FormatSpecifier object and then use
+            generate() to create this.
+        tablename : str
+            The table name.
+        ifNotExists : bool, optional
+            Prevents creation if the table already exists. The default is False.
+        encloseTableName : bool, optional
+            Encloses the table name in quotes to allow for certain table names which may fail;
+            for example, this is necessary if the table name starts with digits.
+            The default is False.
+        commitNow : bool, optional
+            Calls commit on the database connection after the transaction if True. The default is True.
+        '''
         self.cur.execute(self._makeCreateTableStatement(fmt, tablename, ifNotExists, encloseTableName))
         if commitNow:
             self.con.commit()
             
     def dropTable(self, tablename: str, commitNow: bool=False):
+        '''
+        Drops a table.
+
+        Parameters
+        ----------
+        tablename : str
+            The table name.
+        commitNow : bool, optional
+            Calls commit on the database connection after the transaction if True. The default is False.
+        '''
         self.cur.execute(self._makeDropStatement(tablename))
         if commitNow:
             self.con.commit()
             
     def reloadTables(self):
+        '''
+        Loads and parses the details of all tables from sqlite_master.
+        
+        Returns
+        -------
+        results : 
+            Sqlite results from fetchall(). This is usually used for debugging.
+        '''
         stmt = self._makeSelectStatement(["name","sql"], "sqlite_master",
                                          conditions=["type='table'"])
         self.cur.execute(stmt)
@@ -146,10 +203,18 @@ class CommonMethodMixin(StatementGeneratorMixin):
             
     @property
     def tablenames(self):
+        '''
+        List of names of current tables in the database.
+        You may need to call reloadTables() if something is missing.
+        '''
         return list(self._tables.keys())
     
     @property
     def tables(self):
+        '''
+        Dictionary of TableProxy objects that can be used individually to do table-specific actions.
+        You may need to call reloadTables() if something is missing.
+        '''
         return self._tables
     
 #%% Akin to configparser, we create a class for tables
@@ -182,10 +247,16 @@ class TableProxy(StatementGeneratorMixin):
     
     @property
     def columns(self):
+        '''
+        Dictionary of ColumnProxy objects based on the table columns.
+        '''
         return self._cols
     
     @property
     def columnNames(self):
+        '''
+        List of column names of the current table.
+        '''
         return list(self._cols.keys())
  
     ### These are the actual user methods
@@ -193,6 +264,40 @@ class TableProxy(StatementGeneratorMixin):
                columnNames: list,
                conditions: list=None,
                orderBy: list=None):
+        '''
+        Performs a select on the current table.
+
+        Parameters
+        ----------
+        columnNames : list
+            List of columns to extract. A single column may be specified as a string.
+            If all columns are desired, the string "*" may be specified.
+            Examples:
+                ["col1", "col3"]
+                "*"
+                "justThisColumn"
+                
+        conditions : list, optional
+            The filter conditions placed after "where".
+            A single condition may be specified as a string.
+            The default is None, which will place no conditions.
+            Examples:
+                ["col1 < 10", "col2 = 5"]
+                "justThisColumn >= 8"
+                
+        orderBy : list, optional
+            The ordering conditions placed after "order by".
+            A single condition may be specified as a string.
+            The default is None, which will place no ordering on the results.
+            Examples:
+                ["col1 desc", "col2 asc"]
+                "justThisColumn asc"
+
+        Returns
+        -------
+        stmt : str
+            The actual sqlite statement that was executed.
+        '''
         
         stmt = self._makeSelectStatement(
             columnNames,
@@ -204,7 +309,31 @@ class TableProxy(StatementGeneratorMixin):
         return stmt
     
     def insertOne(self, *args, orReplace: bool=False, commitNow: bool=False):
-        '''Note that this assumes all columns are inserted, and in order.'''
+        '''
+        Performs an insert statement for just one row of data.
+        Note that this method assumes that a full insert is being performed
+        i.e. all columns will have a value inserted.
+
+        Parameters
+        ----------
+        *args : iterable
+            An iterable of the data for the row to be inserted.
+            Example:
+                Two REAL columns
+                insertOne(10.0, 20.0)
+                
+        orReplace : bool, optional
+            Overwrites the same data if True, otherwise a new row is created.
+            The default is False.
+            
+        commitNow : bool, optional
+            Calls commit on the database connection after the transaction if True. The default is False.
+
+        Returns
+        -------
+        stmt : str
+            The actual sqlite statement that was executed.
+        '''
         stmt = self._makeInsertStatement(
             self._tbl, self._fmt, orReplace
         )
@@ -214,7 +343,36 @@ class TableProxy(StatementGeneratorMixin):
         return stmt
         
     def insertMany(self, *args, orReplace: bool=False, commitNow: bool=False):
-        '''Note that this assumes all columns are inserted, and in order.'''
+        '''
+        Performs an insert statement for multiple rows of data.
+        Note that this method assumes that a full insert is being performed
+        i.e. all columns will have a value inserted.
+
+        Parameters
+        ----------
+        *args : iterable or generator expression
+            An iterable or generator expression of the data of multiple rows. 
+            See sqlite3.executemany() for more information.
+            Example with data:
+                Two REAL columns
+                insertMany([(10.0, 20.0),(30.0, 40.0)])
+            Example with generator:
+                data1 = np.array([...])
+                data2 = np.array([...])
+                insertMany(((data1[i], data2[i]) for i in range(data1.size)))
+            
+        orReplace : bool, optional
+            Overwrites the same data if True, otherwise a new row is created for every clash.
+            The default is False.
+            
+        commitNow : bool, optional
+            Calls commit on the database connection after the transaction if True. The default is False.
+
+        Returns
+        -------
+        stmt : str
+            The actual sqlite statement that was executed.
+        '''
         stmt = self._makeInsertStatement(
             self._tbl, self._fmt, orReplace
         )
@@ -265,8 +423,26 @@ class ColumnProxy:
 
 #%% Inherited class of all the above
 class Database(CommonRedirectMixin, CommonMethodMixin, SqliteContainer):
-    def __init__(self, dbpath: str):
-        super().__init__(dbpath)
+    def __init__(self, dbpath: str, row_factory: type=sq.Row):
+        '''
+        Instantiates an sqlite database container with all extra functionality included.
+        This enables:
+            CommonRedirectMixin
+                Provides several redirects to common methods, just to have shorter code.
+            CommonMethodMixin
+                Includes common methods to create and drop tables, and provides
+                dictionary-like access to all tables currently in the database.
+                Also includes internal methods for statement generation.
+            
+        Parameters
+        ----------
+        dbpath : str
+            The database to connect to (either a filepath or ":memory:").
+            See sqlite3.connect() for more information.
+        row_factory : type, optional
+            The row factory for the sqlite3 connection. The default is the in-built sqlite3.Row.
+        '''
+        super().__init__(dbpath, row_factory)
 
     
 #%%
@@ -310,7 +486,8 @@ if __name__ == "__main__":
     print(d.tablenames)
     
     # Test inserting into table with dict-like access
-    print(d['table1'].insertMany((i, float(i+1)) for i in range(10)))
+    data = ((i, float(i+1)) for i in range(10)) # Generator expression
+    print(d['table1'].insertMany(data))
     # Then check our results
     print(d['table1'].select("*"))
     results = d.fetchall()
