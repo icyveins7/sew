@@ -125,3 +125,7 @@ if __name__ == "__main__":
     # Retrieve by property and see a dataframe
     df = d['table1'].pdresults
     print(df)
+    
+    # What if i select only one column?
+    print(d['table1'].select("col1"))
+    print(d['table1'].pdresults) # Also works!
