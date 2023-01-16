@@ -6,7 +6,7 @@ Created on Sun Jan 15 22:14:34 2023
 @author: seoxubuntu
 """
 
-from sew import *
+from core import *
 from formatSpec import FormatSpecifier
 import pandas as pd
 

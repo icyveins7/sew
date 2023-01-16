@@ -86,7 +86,7 @@ if __name__ == "__main__":
     print(fmtspec.generate())
     
     #%% Test fromSql
-    from sew import StatementGeneratorMixin
+    from core import StatementGeneratorMixin
     
     stmt = StatementGeneratorMixin._makeCreateTableStatement(fmtspec.generate(), 'table1')
     genFmtspec = FormatSpecifier.fromSql(stmt)
