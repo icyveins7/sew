@@ -8,7 +8,7 @@ Created on Mon Dec  5 17:23:06 2022
 import sqlite3 as sq
 import re
 
-from formatSpec import FormatSpecifier
+from .formatSpec import FormatSpecifier
 
 #%% Basic container, the most barebones
 class SqliteContainer:

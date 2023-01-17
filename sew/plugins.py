@@ -6,8 +6,8 @@ Created on Sun Jan 15 22:14:34 2023
 @author: seoxubuntu
 """
 
-from core import *
-from formatSpec import FormatSpecifier
+from ._core import *
+from .formatSpec import FormatSpecifier
 import pandas as pd
 
 #%% Pandas plugins
