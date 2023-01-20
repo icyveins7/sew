@@ -10,8 +10,10 @@ Run this from the outer sew folder with 'python -m tests'
 
 import unittest
 
-# import ..sew
-print("Running tests")
+print("Begin tests")
+
+# Import correctness unittests
+from .correctness import *
 
 # Import benchmark unittests
 from .benchmarks import *
