@@ -2,10 +2,23 @@
 from ._helpers import *
 
 import unittest
+import sqlite3 as sq
 
 class TestCorrectness(unittest.TestCase):
     def setUp(self):
         self.d = sew.Database(":memory:")
+        self.fmtspec = sew.FormatSpecifier(
+            [
+                ["col1", "real"],
+                ["col2", "real"]
+            ],
+            ["UNIQUE(col1, col2)"]
+        )
+        self.d.createTable(
+            self.fmtspec.generate(),
+            "correctness"
+        )
+        self.d.reloadTables()
         print("Running tests.correctness")
 
     def tearDown(self):
@@ -31,3 +44,23 @@ class TestCorrectness(unittest.TestCase):
             stmt2, "select col1,col2 from tablename where col1 > ? and col2 > ? order by col1 desc",
             "select statement with conditions and ordering is incorrect"
         )
+
+    def test_uniqueness_throws(self):
+        self.d['correctness'].insertMany(
+            [(0,1),(0,1)],
+            orReplace=False
+        )
+        # TODO: complete this test
+
+    def test_insert_requires_all_columns(self):
+        with self.assertRaises(sq.ProgrammingError):
+            self.d['correctness'].insertMany(
+                ((i,) for i in range(2))
+            )
+
+        with self.assertRaises(sq.ProgrammingError):
+            self.d['correctness'].insertOne(
+                0.
+            )
+
+        

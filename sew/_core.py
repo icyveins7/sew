@@ -339,7 +339,7 @@ class TableProxy(StatementGeneratorMixin):
         )
         self._parent.cur.execute(stmt, (args))
         if commitNow:
-            self.con.commit()
+            self._parent.con.commit()
         return stmt
         
     def insertMany(self, *args, orReplace: bool=False, commitNow: bool=False):
@@ -382,7 +382,7 @@ class TableProxy(StatementGeneratorMixin):
         else: # Otherwise its just plain old data
             self._parent.cur.executemany(stmt, args)
         if commitNow:
-            self.con.commit()
+            self._parent.con.commit()
         return stmt
 
 #%% And also a class for columns
