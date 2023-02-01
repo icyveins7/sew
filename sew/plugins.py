@@ -99,7 +99,7 @@ class PandasDatabase(CommonRedirectMixin, PandasCommonMethodMixin, SqliteContain
     pass
 
 #%% Numpy plugins %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-class NumpyCommonMethodMixin(CommonRedirectMixin):
+class NumpyCommonMethodMixin(CommonMethodMixin):
     '''
     Design goals for Numpy plugin:
         1) Assume columns are marked with data type as a suffix.
@@ -157,7 +157,12 @@ class NumpyTableProxy(TableProxy):
         self._npresults = None # Additional cache for numpy results
         
     def _getNumpyTypeFromSuffix(self, key: str):
-        pass # TODO
+        for suffix in self.numpyColumnSuffixes:
+            if key[-len(suffix):] == suffix:
+                return self.numpyColumnSuffixes[suffix]
+
+        # Return None if no suffix
+        return None
 
     def fetchAsNumpy(self, firstLength: int=100):
         '''
@@ -188,6 +193,7 @@ class NumpyTableProxy(TableProxy):
             if row is None:
                 break # No more rows to fetch
             
+            # On the first iteration fill the column names
             if not inited:
                 for key in row.keys():
                     numpytype = self._getNumpyTypeFromSuffix(key)
@@ -218,56 +224,8 @@ class NumpyTableProxy(TableProxy):
 
         return r
 
-    
-    def select(self,
-               columnNames: list,
-               conditions: list=None,
-               orderBy: list=None):
-        '''
-        Performs a select on the current table.
-        Numpy plugin version. TODO: complete.
-
-        Parameters
-        ----------
-        columnNames : list
-            List of columns to extract. A single column may be specified as a string.
-            If all columns are desired, the string "*" may be specified.
-            Examples:
-                ["col1", "col3"]
-                "*"
-                "justThisColumn"
-                
-        conditions : list, optional
-            The filter conditions placed after "where".
-            A single condition may be specified as a string.
-            The default is None, which will place no conditions.
-            Examples:
-                ["col1 < 10", "col2 = 5"]
-                "justThisColumn >= 8"
-                
-        orderBy : list, optional
-            The ordering conditions placed after "order by".
-            A single condition may be specified as a string.
-            The default is None, which will place no ordering on the results.
-            Examples:
-                ["col1 desc", "col2 asc"]
-                "justThisColumn asc"
-
-        Returns
-        -------
-        stmt : str
-            The actual sqlite statement that was executed.
-        '''
-        
-        stmt = self._makeSelectStatement(
-            columnNames,
-            self._tbl,
-            conditions,
-            orderBy
-        )
-        
-        return stmt
-
+class NumpyDatabase(CommonRedirectMixin, NumpyCommonMethodMixin, SqliteContainer):
+    pass
 
 
 #%%

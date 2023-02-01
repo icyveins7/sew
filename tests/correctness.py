@@ -3,6 +3,7 @@ from ._helpers import *
 
 import unittest
 import sqlite3 as sq
+import numpy as np
 
 class TestCorrectness(unittest.TestCase):
     def setUp(self):
@@ -64,3 +65,29 @@ class TestCorrectness(unittest.TestCase):
             )
 
         
+    def test_numpy_plugin(self):
+        data_f64 = np.random.randn(100).astype(np.float64)
+        data_f32 = np.random.randn(100).astype(np.float32)
+
+        nd = sew.plugins.NumpyDatabase(":memory:")
+        npfmtspec = sew.FormatSpecifier(
+            [
+                ["col1_f64", "real"],
+                ["col2_f32", "real"]
+            ]
+        )
+
+        nd.createTable(
+            npfmtspec.generate(),
+            "nptable"
+        )
+        nd.reloadTables()
+        nd['nptable'].insertMany(
+            ((data_f64[i], data_f32[i]) for i in range(data_f64.size)),
+            commitNow=True
+        )
+        stmt = nd['nptable'].select("*")
+        print(stmt)
+        results = nd['nptable'].fetchAsNumpy()
+        print(results[0])
+        print(results[1])
