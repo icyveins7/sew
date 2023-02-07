@@ -152,20 +152,6 @@ class NumpyTableProxy(TableProxy):
         "f16": np.float16
     }
 
-    # numpyCastTypes = {
-    #     "u64": np.uint64,
-    #     "u32": np.uint32,
-    #     "u16": np.uint16,
-    #     "u8": np.uint8,
-    #     "i64": np.int64,
-    #     "i32": np.int32,
-    #     "i16": np.int16,
-    #     "i8": np.int8,
-    #     "f64": np.float64,
-    #     "f32": np.float32,
-    #     "f16": np.float16
-    # }
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._npresults = None # Additional cache for numpy results
@@ -262,8 +248,39 @@ class NumpyTableProxy(TableProxy):
 
 
     def insertMany(self, *args, orReplace: bool=False, commitNow: bool=False):
+        '''
+        Performs an insert statement for multiple rows of data.
+        Note that this method assumes that a full insert is being performed
+        i.e. all columns will have a value inserted.
+        
+        This version only supports numpy arrays, and assumes that individual columns are
+        passed in as individual arrays in the *args parameters.
+        Do not construct the generator object yourself, unlike the parent class.
 
-        # TODO: fill docstring
+        Parameters
+        ----------
+        *args : multiple numpy arrays
+            Each argument should represent a column in the table.
+            Example table:
+                col1_f64 REAL, col2_f32 REAL
+                ...
+                arr_f64 = np.array([...], dtype=np.float64)
+                arr_f32 = np.array([...], dtype=np.float32)
+                insertMany(arr_f64, arr_f32)
+
+        orReplace : bool, optional
+            Overwrites the same data if True, otherwise a new row is created for every clash.
+            The default is False.
+            
+        commitNow : bool, optional
+            Calls commit on the database connection after the transaction if True. The default is False.
+
+        Returns
+        -------
+        stmt : str
+            The actual sqlite statement that was executed.
+
+        '''
 
         # Make the generator
         _args = self._numpyParseInserts(*args)
