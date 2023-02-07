@@ -152,6 +152,20 @@ class NumpyTableProxy(TableProxy):
         "f16": np.float16
     }
 
+    # numpyCastTypes = {
+    #     "u64": np.uint64,
+    #     "u32": np.uint32,
+    #     "u16": np.uint16,
+    #     "u8": np.uint8,
+    #     "i64": np.int64,
+    #     "i32": np.int32,
+    #     "i16": np.int16,
+    #     "i8": np.int8,
+    #     "f64": np.float64,
+    #     "f32": np.float32,
+    #     "f16": np.float16
+    # }
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._npresults = None # Additional cache for numpy results
@@ -217,12 +231,44 @@ class NumpyTableProxy(TableProxy):
                     r[key] = tmp
                 
                 # Write to our array
-                r[key][i] = row[key]
+                r[key][i] = row[key] # TODO: add type casting correctly otherwise sqlite returns blobs for most types
+
 
             # Increment counter
             i += 1
 
         return r
+
+    def _numpyParseInserts(self, *args):
+        '''
+        Helper method to cast numpy arrays during inserts.
+        This is mainly to ensure that sqlite can read the types,
+        since it bugs out when the size is not "common".
+        Example: 
+            float32 will not be read in correctly, so it must be cast to float64.
+        '''
+        if hasattr(args[0], "__next__"): # Self-inputted generator is not allowed here
+            raise TypeError("For numpy databases, pass in the individual arrays directly instead of your own generators.")
+
+        length = args[0].size # They must all be the same length anyway
+        _args = (
+            [args[i][j] for i in range(len(args))]
+            for j in range(length)
+        )
+        return _args
+
+
+    def insertMany(self, *args, orReplace: bool=False, commitNow: bool=False):
+
+        # TODO: fill docstring
+
+        # Make the generator
+        _args = self._numpyParseInserts(*args)
+
+        # Everything else is the same
+        stmt = super().insertMany(_args, orReplace=orReplace, commitNow=commitNow)
+        
+        return stmt
 
 class NumpyDatabase(CommonRedirectMixin, NumpyCommonMethodMixin, SqliteContainer):
     pass
