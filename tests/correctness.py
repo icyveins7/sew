@@ -82,21 +82,13 @@ class TestCorrectness(unittest.TestCase):
             "nptable"
         )
         nd.reloadTables()
-        # nd['nptable'].insertMany( # float32s need to be cast as float64s or else python's sqlite doesn't parse them properly
-        #     ((data_f64[i], data_f32[i].astype(np.float64)) for i in range(data_f64.size)),
-        #     commitNow=True
-        # )
-        _a = nd['nptable']._numpyCast(data_f64,data_f32)
-        for i in _a:
-            print(i)
-        
 
         nd['nptable'].insertMany(
             data_f64, data_f32, commitNow=True
         )
         stmt = nd['nptable'].select("*")
-        print(stmt)
+        
         results = nd['nptable'].fetchAsNumpy()
-        print(results)
-        # print(results[0])
-        # print(results[1])
+        
+        np.testing.assert_equal(data_f64, results['col1_f64'])
+        np.testing.assert_equal(data_f32, results['col2_f32'])        
