@@ -46,12 +46,12 @@ class TestCorrectness(unittest.TestCase):
             "select statement with conditions and ordering is incorrect"
         )
 
-    # def test_uniqueness_throws(self):
-    #     self.d['correctness'].insertMany(
-    #         [(0,1),(0,1)],
-    #         orReplace=False
-    #     )
-    #     # TODO: complete this test
+    def test_uniqueness_throws(self):
+        with self.assertRaises(sq.ProgrammingError):
+            self.d['correctness'].insertMany(
+                [(0,1),(0,1)],
+                orReplace=False
+            )
 
     def test_insert_requires_all_columns(self):
         with self.assertRaises(sq.ProgrammingError):
