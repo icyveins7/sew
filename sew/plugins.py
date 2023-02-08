@@ -246,6 +246,8 @@ class NumpyTableProxy(TableProxy):
         )
         return _args
 
+    def insertOne(self, *args, **kwargs):
+        raise NotImplementedError("For numpy databases, you can only pass in numpy arrays via insertMany. Length one arrays are allowed there.")
 
     def insertMany(self, *args, orReplace: bool=False, commitNow: bool=False):
         '''
