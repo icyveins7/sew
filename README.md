@@ -3,6 +3,12 @@ Sqlite Extensions &amp; Wrappers for Python.
 
 Tired of writing create/insert/select statements yourself? Then just subclass this.
 
+# Motivation
+
+Many processes for data manipulation with sqlite databases can be achieved with big-data libraries like Pandas. Sometimes, however, you might want some fine-grained control over the database creation and modification.
+
+For example, Pandas currently does not support replacement inserts on a per-row basis. The .to_sql() method will only replace the entire table if specified.
+
 # Installation
 As this is currently not a wheel, simply clone and then install in editable mode.
 
@@ -12,7 +18,7 @@ cd sew
 pip install -e .
 ```
 
-You should then be able to use it from anywhere.
+You should then be able to use it from anywhere. Updates just require a ```git pull``` command on your repository folder.
 
 # Usage
 The most common use-case is to initialise a ```Database``` object, just like you would with sqlite3.
@@ -91,6 +97,10 @@ d["mytablename"].insertMany(
 ) 
 ```
 
+## Other Examples
+
+Many of the examples are encoded into actual tests! Take a look at the ```tests``` folder to see examples of everything from standard selects and inserts to the use of the plugins.
+
 
 # Plugins
 
@@ -104,3 +114,20 @@ d = sew.plugins.PandasDatabase(...)
 d['mytable'].select(...)
 dataframe = d['mytable'].pdresults
 ```
+
+## NumPy
+If you'd like direct NumPy array support (rather than converting to and from Pandas dataframes), you can use the ```NumpyDatabase```, which performs inserts by assigning each array to a column. Select-statement behaviour returns arrays as a named dictionary, with keys as the column names.
+
+```python
+import sew.plugins
+
+d = sew.plugins.NumpyDatabase(...)
+
+data_f64 = np.array([...], dtype=np.float64)
+data_f32 = np.array([...], dtype=np.float32)
+
+# Table is created with "col1_f64 REAL, col2_f32 REAL"
+d['mytable'].insertMany(data_f64, data_f32)
+```
+
+All datatypes should be preserved where possible; that means if you inserted an np.uint8 array, it should automatically return as an np.uint8 array. This is achieved via explicit encoding of the datatypes into the column names as suffixes. You can view these as the class global variable ```NummpyTableProxy.numpyColumnSuffixes```.
