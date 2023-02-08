@@ -385,6 +385,24 @@ class TableProxy(StatementGeneratorMixin):
             self._parent.con.commit()
         return stmt
 
+#%% We have a special subclass for tables that are treated as metadata for other tables
+# These tables contain a data_tblname column, and then all other columns are treated as metadata for it.
+# This is especially useful if a table has a bunch of constant columns, but across tables these columns may have different values
+# i.e. something like a table of processing results for a particular run, but each table used a different config file.
+class MetaTableProxy(TableProxy):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Metadata tables MUST end with "_metadata"
+        if not self._tbl.endswith("_metadata"): # We throw if either created wrongly by user or accidentally internally
+            raise ValueError("Metadata tables must end with '_metadata' but %s did not!" % self._tbl)
+
+        # Format must contain 'data_tblname', and all other columns are treated as the actual metadata
+        if not FormatSpecifier.dictContainsColumn(self._fmt, "data_tblname"):
+            raise ValueError("Format must contain 'data_tblname' as the primary key, but %s did not!" % self._fmt)
+
+    # TODO: return metadata for a particular data_tblname
+        
+
 #%% And also a class for columns
 ### TODO: Intention for this is to build it into a way to automatically generate conditions in select statements..
 class ColumnProxy:

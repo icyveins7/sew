@@ -7,6 +7,20 @@ Created on Mon Dec 19 16:41:17 2022
 
 import re
 
+#%%
+
+# Formats are generated as a dictionary of 'cols' and 'conds'
+# which specify the columns and conditions respectively.
+# Example:
+# fmt = {
+#     'cols': [
+#         ['col1', 'integer'], # list of lists, with inner list begin column name and sqlite type in that order
+#         ['col2', 'REAL'] # the type upper/lower-case doesn't matter
+#     ],
+#     'conds': [
+#         "UNIQUE(col1, col2)" # this is just a list of strings, with each one specifying an extra condition
+#     ]
+# }
 class FormatSpecifier:
     sqliteTypes = {
         int: "INTEGER",
@@ -63,6 +77,16 @@ class FormatSpecifier:
         cols = [s.strip().split(" ") for s in fmtstrs]
         
         return cls(cols, conds)
+
+    @staticmethod
+    def dictContainsColumn(fmt: dict, colname: str):
+        '''Checks if a generated format dictionary contains a particular column.'''
+        check = False
+        for i, col in enumerate(fmt['cols']):
+            if col[0] == colname:
+                check = True
+                break
+        return check
         
 
 #%%
