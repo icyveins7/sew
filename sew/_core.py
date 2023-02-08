@@ -161,6 +161,73 @@ class CommonMethodMixin(StatementGeneratorMixin):
         self.cur.execute(self._makeCreateTableStatement(fmt, tablename, ifNotExists, encloseTableName))
         if commitNow:
             self.con.commit()
+
+    def createMetaTable(self, fmt: dict, tablename: str, ifNotExists: bool=False, encloseTableName: bool=False, commitNow: bool=True):
+        '''
+        Creates a new meta table.
+
+        Parameters
+        ----------
+        fmt : dict
+            Dictionary of column names/types and special conditions that characterises the table.
+            The easiest way to generate this is to instantiate a FormatSpecifier object and then use
+            generate() to create this.
+        tablename : str
+            The table name.
+        ifNotExists : bool, optional
+            Prevents creation if the table already exists. The default is False.
+        encloseTableName : bool, optional
+            Encloses the table name in quotes to allow for certain table names which may fail;
+            for example, this is necessary if the table name starts with digits.
+            The default is False.
+        commitNow : bool, optional
+            Calls commit on the database connection after the transaction if True. The default is True.
+        '''
+
+        # Check if the format and table names are valid
+        if not tablename.endswith(MetaTableProxy.requiredTableSuffix):
+            raise ValueError("Metadata table %s must end with %s" % (tablename, MetaTableProxy.requiredTableSuffix))
+
+        if not FormatSpecifier.dictContainsColumn(fmt, MetaTableProxy.requiredColumn):
+            raise ValueError("Metadata table %s must contain the column %s" % (tablename, MetaTableProxy.requiredColumn))
+
+        # Otherwise, everything else is the same
+        self.cur.execute(self._makeCreateTableStatement(fmt, tablename, ifNotExists, encloseTableName))
+        if commitNow:
+            self.con.commit()
+
+    def createDataTable(self, fmt: dict, tablename: str, metatablename: str, ifNotExists: bool=False, encloseTableName: bool=False, commitNow: bool=True):
+        '''
+        Creates a new data table. This table will be intrinsically linked to a row in the associated metadata table.
+
+        Parameters
+        ----------
+        fmt : dict
+            Dictionary of column names/types and special conditions that characterises the table.
+            The easiest way to generate this is to instantiate a FormatSpecifier object and then use
+            generate() to create this.
+        tablename : str
+            The table name.
+        metatablename : str
+            The metadata table name.
+        ifNotExists : bool, optional
+            Prevents creation if the table already exists. The default is False.
+        encloseTableName : bool, optional
+            Encloses the table name in quotes to allow for certain table names which may fail;
+            for example, this is necessary if the table name starts with digits.
+            The default is False.
+        commitNow : bool, optional
+            Calls commit on the database connection after the transaction if True. The default is True.
+        '''
+
+        # Check if the meta table exists
+        if not metatablename in self._tables:
+            raise ValueError("Metadata table %s does not exist!" % metatablename)
+
+        # Otherwise, everything else is the same
+        self.cur.execute(self._makeCreateTableStatement(fmt, tablename, ifNotExists, encloseTableName))
+        if commitNow:
+            self.con.commit()
             
     def dropTable(self, tablename: str, commitNow: bool=False):
         '''
@@ -390,17 +457,40 @@ class TableProxy(StatementGeneratorMixin):
 # This is especially useful if a table has a bunch of constant columns, but across tables these columns may have different values
 # i.e. something like a table of processing results for a particular run, but each table used a different config file.
 class MetaTableProxy(TableProxy):
+    requiredColumn = 'data_tblname'
+    requiredTableSuffix = "_metadata"
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Metadata tables MUST end with "_metadata"
-        if not self._tbl.endswith("_metadata"): # We throw if either created wrongly by user or accidentally internally
+        if not self._tbl.endswith(self.requiredTableSuffix): # We throw if either created wrongly by user or accidentally internally
             raise ValueError("Metadata tables must end with '_metadata' but %s did not!" % self._tbl)
 
         # Format must contain 'data_tblname', and all other columns are treated as the actual metadata
-        if not FormatSpecifier.dictContainsColumn(self._fmt, "data_tblname"):
+        if not FormatSpecifier.dictContainsColumn(self._fmt, self.requiredColumn):
             raise ValueError("Format must contain 'data_tblname' as the primary key, but %s did not!" % self._fmt)
 
-    # TODO: return metadata for a particular data_tblname
+    def getMetadataFor(self, data_tblname: str):
+        '''
+        Returns the metadata for a particular data_tblname.
+
+        Parameters
+        ----------
+        data_tblname : str
+            The name of the data table to get the metadata for.
+
+        Returns
+        -------
+        metadata : dict
+            The metadata for the data_tblname.
+        '''
+        stmt = self._makeSelectStatement("*", self._tbl, ["data_tblname=%s" % data_tblname])
+        self._parent.cur.execute(stmt)
+        metadata = self._parent.cur.fetchone()
+        if metadata is None:
+            raise ValueError("No metadata found for %s!" % data_tblname)
+        return metadata
+    
         
 
 #%% And also a class for columns

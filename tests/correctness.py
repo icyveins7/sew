@@ -5,6 +5,7 @@ import unittest
 import sqlite3 as sq
 import numpy as np
 
+#%%
 class TestCorrectness(unittest.TestCase):
     def setUp(self):
         self.d = sew.Database(":memory:")
@@ -20,10 +21,47 @@ class TestCorrectness(unittest.TestCase):
             "correctness"
         )
         self.d.reloadTables()
-        print("Running tests.correctness")
+        # print("Running tests.correctness")
 
-    def tearDown(self):
-        print("Completed tests.correctness")
+    # def tearDown(self):
+    #     print("Completed tests.correctness")
+    #%%
+    def test_create_metadata(self):
+        # First check that it throws if tablename or columns are wrong
+        metaFmtspec = sew.FormatSpecifier(
+            [
+                ["data_tblname", "TEXT"]
+            ],
+            []
+        )
+
+        with self.assertRaises(ValueError):
+            self.d.createMetaTable(
+                metaFmtspec.generate(),
+                "wrong_tablename"
+            )
+
+        with self.assertRaises(ValueError):
+            self.d.createMetaTable(
+                self.fmtspec.generate(),
+                "tbl_metadata"
+            )
+
+        # Now actually create a legitimate one
+        self.d.createMetaTable(
+            metaFmtspec.generate(),
+            "tbl_metadata"
+        )
+        self.d.reloadTables()
+
+        # Test creating a data table, make sure it throws if the associated meta table doesn't exist
+        with self.assertRaises(ValueError):
+            self.d.createDataTable(
+                self.fmtspec.generate(),
+                "mydata_table",
+                "nonexistent_metadata"
+            )
+
 
     def test_redirect(self):
         self.assertEqual(
