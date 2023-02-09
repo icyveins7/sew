@@ -172,6 +172,7 @@ class CommonMethodMixin(StatementGeneratorMixin):
             Dictionary of column names/types and special conditions that characterises the table.
             The easiest way to generate this is to instantiate a FormatSpecifier object and then use
             generate() to create this.
+            Metadata tables are expected to have the first column designated as 'data_tblname TEXT'.
         tablename : str
             The table name.
         ifNotExists : bool, optional
@@ -196,7 +197,7 @@ class CommonMethodMixin(StatementGeneratorMixin):
         if commitNow:
             self.con.commit()
 
-    def createDataTable(self, fmt: dict, tablename: str, metatablename: str, ifNotExists: bool=False, encloseTableName: bool=False, commitNow: bool=True):
+    def createDataTable(self, fmt: dict, tablename: str, metadata: list, metatablename: str, ifNotExists: bool=False, encloseTableName: bool=False, commitNow: bool=True):
         '''
         Creates a new data table. This table will be intrinsically linked to a row in the associated metadata table.
 
@@ -208,6 +209,8 @@ class CommonMethodMixin(StatementGeneratorMixin):
             generate() to create this.
         tablename : str
             The table name.
+        metadata : dict
+            The metadata to insert into the metadata table associated with this data table.
         metatablename : str
             The metadata table name.
         ifNotExists : bool, optional
@@ -221,13 +224,21 @@ class CommonMethodMixin(StatementGeneratorMixin):
         '''
 
         # Check if the meta table exists
-        if not metatablename in self._tables:
+        if not metatablename in self._tables.keys():
             raise ValueError("Metadata table %s does not exist!" % metatablename)
+
+        # Insert the associated metadata into the metadata table
+        metastmt = self._makeInsertStatement(
+            metatablename,
+            self._tables[metatablename]._fmt)
+        metadata.insert(0, tablename) # The first argument is the name of the data table
+        self.cur.execute(metastmt, metadata)
 
         # Otherwise, everything else is the same
         self.cur.execute(self._makeCreateTableStatement(fmt, tablename, ifNotExists, encloseTableName))
         if commitNow:
             self.con.commit()
+
             
     def dropTable(self, tablename: str, commitNow: bool=False):
         '''
@@ -258,9 +269,28 @@ class CommonMethodMixin(StatementGeneratorMixin):
         self.cur.execute(stmt)
         results = self.cur.fetchall()
         self._tables.clear()
+
+        dataToMeta = dict()
         for result in results:
-            self._tables[result[0]] = TableProxy(self, result[0],
-                                                      FormatSpecifier.fromSql(result[1]).generate())
+            # Special cases for metadata tables
+            if result[0].endswith(MetaTableProxy.requiredTableSuffix):
+                self._tables[result[0]] = MetaTableProxy(self, result[0], FormatSpecifier.fromSql(result[1]).generate())
+                # We also retrieve all associated data table names
+                assocDataTables = self._tables[result[0]].getDataTables()
+                for dt in assocDataTables:
+                    dataToMeta[dt] = result[0]
+            else:
+                self._tables[result[0]] = TableProxy(self, result[0], FormatSpecifier.fromSql(result[1]).generate())
+
+        # Iterate over all the tables to upgrade them to data tables if they exist
+        for table in self._tables:
+            if table in dataToMeta.keys():
+                self._tables[table] = DataTableProxy(
+                    self._tables[table]._parent,
+                    self._tables[table]._tbl,
+                    self._tables[table]._fmt,
+                    dataToMeta[table] # Attach the metadata table's name
+                )
             
         return results
     
@@ -481,15 +511,42 @@ class MetaTableProxy(TableProxy):
 
         Returns
         -------
-        metadata : dict
+        metadata : sqlite3.Row
             The metadata for the data_tblname.
         '''
-        stmt = self._makeSelectStatement("*", self._tbl, ["data_tblname=%s" % data_tblname])
+        stmt = self._makeSelectStatement("*", self._tbl, ["data_tblname='%s'" % data_tblname])
         self._parent.cur.execute(stmt)
         metadata = self._parent.cur.fetchone()
         if metadata is None:
             raise ValueError("No metadata found for %s!" % data_tblname)
         return metadata
+
+    def getDataTables(self):
+        '''
+        Returns a list of all the data tables associated to this metadata table.
+
+        Returns
+        -------
+        data_tblnames : list
+            A list of all the data tables in the database.
+        '''
+        stmt = self._makeSelectStatement("data_tblname", self._tbl)
+        self._parent.cur.execute(stmt)
+        data_tblnames = [row[0] for row in self._parent.cur.fetchall()]
+        return data_tblnames
+
+#%% Data tables act exactly like any other table, but keep track of their metadatatable internally
+class DataTableProxy(TableProxy):
+    def __init__(self, parent: SqliteContainer, tbl: str, fmt: dict, metadatatable: str=None):
+        super().__init__(parent, tbl, fmt)
+        self._metadatatable = metadatatable # Keeps track of metadatatable
+
+    def setMetadataTable(self, metadatatable: str):
+        self._metadatatable = metadatatable
+
+    @property
+    def metadataTablename(self):
+        return self._metadatatable
     
         
 

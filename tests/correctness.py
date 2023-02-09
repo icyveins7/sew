@@ -30,7 +30,9 @@ class TestCorrectness(unittest.TestCase):
         # First check that it throws if tablename or columns are wrong
         metaFmtspec = sew.FormatSpecifier(
             [
-                ["data_tblname", "TEXT"]
+                ["data_tblname", "TEXT"],
+                ["setting1", "INT"],
+                ["setting2", "REAL"]
             ],
             []
         )
@@ -55,12 +57,41 @@ class TestCorrectness(unittest.TestCase):
         self.d.reloadTables()
 
         # Test creating a data table, make sure it throws if the associated meta table doesn't exist
+        metadata = [5, 0.2]
         with self.assertRaises(ValueError):
             self.d.createDataTable(
                 self.fmtspec.generate(),
                 "mydata_table",
+                metadata,
                 "nonexistent_metadata"
             )
+
+        # Now actually create the data table
+        self.d.createDataTable(
+            self.fmtspec.generate(),
+            "mydata_table",
+            metadata,
+            "tbl_metadata"
+        )
+        self.d.reloadTables()
+
+        # Check the list of data tables associated with this metadata table
+        datatables = self.d['tbl_metadata'].getDataTables()
+        self.assertListEqual(
+            datatables,
+            ["mydata_table"]
+        )
+
+        # Check that the data row exists inside metadata table
+        metadataresult = self.d['tbl_metadata'].getMetadataFor(
+            'mydata_table'
+        )
+        self.assertListEqual(
+            metadata,
+            [i for i in metadataresult]
+        )
+
+        # TODO: add tests to check that data table proxies were upgraded correctly
 
 
     def test_redirect(self):

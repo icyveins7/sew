@@ -17,10 +17,10 @@ class TestBenchmarks(unittest.TestCase):
             "benchmark"
         )
         self.d.reloadTables()
-        print("Running tests.benchmarks")
+        # print("Running tests.benchmarks")
 
-    def tearDown(self):
-        print("Completed tests.benchmarks")
+    # def tearDown(self):
+    #     print("Completed tests.benchmarks")
 
     def test_benchmarks_10000(self):
         length = 10000
@@ -30,7 +30,7 @@ class TestBenchmarks(unittest.TestCase):
             commitNow=True
         )
         t2 = time.time()
-        print("%d generator inserts at %f/s." % (length, (t2-t1)/length))
+        print("%d generator inserts at %f/s." % (length, length/(t2-t1)))
 
         # Don't actually need to assert anything
 
@@ -42,7 +42,7 @@ class TestBenchmarks(unittest.TestCase):
             commitNow=True
         )
         t2 = time.time()
-        print("%d generator inserts at %f/s." % (length, (t2-t1)/length))
+        print("%d generator inserts at %f/s." % (length, length/(t2-t1)))
         
         # Don't actually need to assert anything
 
@@ -56,6 +56,6 @@ class TestBenchmarks(unittest.TestCase):
             commitNow=True
         )
         t2 = time.time()
-        print("%d array reference inserts at %f/s." % (length, (t2-t1)/length))
+        print("%d array reference inserts at %f/s." % (length, length/(t2-t1)))
 
         # Don't actually need to assert anything
