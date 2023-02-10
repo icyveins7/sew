@@ -56,7 +56,7 @@ class TestBenchmarks(unittest.TestCase):
         self.d['benchmark'].insertMany(
             np.nditer([data[0,:],data[1,:]], op_flags=[['readonly'],['readonly']]),
             # zip(data[0,:], data[1,:]),
-            # ((data[0,i], data[1,i]) for i in range(length)),
+            # ((data[0,i], data[1,i]) for i in range(length)), # All no significant change
             commitNow=True
         )
         t2 = time.time()
@@ -67,7 +67,8 @@ class TestBenchmarks(unittest.TestCase):
         t1 = time.time()
         
         self.d['benchmark'].insertMany(
-            data,
+            np.nditer([data[:,0], data[:,1]], op_flags=[['readonly'],['readonly']]),
+            # data, # nditer offers no speedup
             commitNow=True
         )
         t2 = time.time()
