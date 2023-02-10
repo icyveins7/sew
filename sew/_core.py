@@ -542,13 +542,25 @@ class DataTableProxy(TableProxy):
         self._metadatatable = metadatatable # Keeps track of metadatatable
 
     def setMetadataTable(self, metadatatable: str):
+        '''Sets the metadata table name for this data table.'''
         self._metadatatable = metadatatable
 
     @property
     def metadataTablename(self):
+        '''Returns the metadata tablename.'''
         return self._metadatatable
 
     def getMetadata(self):
+        '''
+        Returns the metadata for this data table by accessing the associated
+        metadata table and extracting the relevant row.
+
+        Returns
+        -------
+        metadata : sqlite3.Row
+            Sqlite row result for the metadata.
+            This will usually contain the current table's name as the first column.
+        '''
         # We access the metadata table through the parent container
         return self._parent[self._metadatatable].getMetadataFor(self._tbl)
     
