@@ -25,6 +25,12 @@ class TestCorrectness(unittest.TestCase):
 
     # def tearDown(self):
     #     print("Completed tests.correctness")
+
+    def test_insert_simple(self):
+        self.d['correctness'].insertMany(
+            [(10.0, 20.0), (30.0,40.0)]
+        )
+
     #%%
     def test_create_metadata(self):
         # First check that it throws if tablename or columns are wrong

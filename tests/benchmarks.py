@@ -2,6 +2,7 @@ import unittest
 from ._helpers import *
 import time
 import numpy as np
+import itertools
 
 class TestBenchmarks(unittest.TestCase):
     def setUp(self):
@@ -50,12 +51,26 @@ class TestBenchmarks(unittest.TestCase):
         length = 1000000
         data = np.random.rand(2, length)
 
+        # This is signficantly slower, regardless of the method of iteration
         t1 = time.time()
         self.d['benchmark'].insertMany(
-            ((data[0,i], data[1,i]) for i in range(length)),
+            np.nditer([data[0,:],data[1,:]], op_flags=[['readonly'],['readonly']]),
+            # zip(data[0,:], data[1,:]),
+            # ((data[0,i], data[1,i]) for i in range(length)),
             commitNow=True
         )
         t2 = time.time()
         print("%d array reference inserts at %f/s." % (length, length/(t2-t1)))
+
+        # What if we transpose first? No difference..
+        data = np.ascontiguousarray(data.T)
+        t1 = time.time()
+        
+        self.d['benchmark'].insertMany(
+            (data[i,:] for i in range(length)),
+            commitNow=True
+        )
+        t2 = time.time()
+        print("%d array (transposed) reference inserts at %f/s." % (length, length/(t2-t1)))
 
         # Don't actually need to assert anything
