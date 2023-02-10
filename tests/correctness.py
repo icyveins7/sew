@@ -91,6 +91,13 @@ class TestCorrectness(unittest.TestCase):
             [i for i in metadataresult]
         )
 
+        # Also check that we can retrieve it from the data table
+        metadataresultFromDataTable = self.d['mydata_table'].getMetadata()
+        self.assertListEqual(
+            metadata,
+            [i for i in metadataresultFromDataTable]
+        )
+
         # TODO: add tests to check that data table proxies were upgraded correctly
 
 

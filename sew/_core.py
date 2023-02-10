@@ -547,6 +547,10 @@ class DataTableProxy(TableProxy):
     @property
     def metadataTablename(self):
         return self._metadatatable
+
+    def getMetadata(self):
+        # We access the metadata table through the parent container
+        return self._parent[self._metadatatable].getMetadataFor(self._tbl)
     
         
 
