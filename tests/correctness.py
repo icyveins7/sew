@@ -98,7 +98,15 @@ class TestCorrectness(unittest.TestCase):
             [i for i in metadataresultFromDataTable]
         )
 
-        # TODO: add tests to check that data table proxies were upgraded correctly
+        # If this passes then by definition we should be able to see the classes were upgradecd correctly
+        self.assertIsInstance(
+            self.d['tbl_metadata'],
+            sew.MetaTableProxy
+        )
+        self.assertIsInstance(
+            self.d['mydata_table'],
+            sew.DataTableProxy
+        )
 
 
     def test_redirect(self):
