@@ -67,7 +67,7 @@ class TestBenchmarks(unittest.TestCase):
         t1 = time.time()
         
         self.d['benchmark'].insertMany(
-            (data[i,:] for i in range(length)),
+            data,
             commitNow=True
         )
         t2 = time.time()

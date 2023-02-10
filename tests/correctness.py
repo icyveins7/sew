@@ -137,7 +137,7 @@ class TestCorrectness(unittest.TestCase):
         )
 
     def test_uniqueness_throws(self):
-        with self.assertRaises(sq.ProgrammingError):
+        with self.assertRaises(sq.IntegrityError):
             self.d['correctness'].insertMany(
                 [(0,1),(0,1)],
                 orReplace=False
