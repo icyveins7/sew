@@ -334,6 +334,8 @@ class TableProxy(StatementGeneratorMixin):
                 cols[colname] = ColumnProxy(colname, str)
             elif re.match(r"real", col[1], flags=re.IGNORECASE) or re.match(r"double", col[1], flags=re.IGNORECASE) or re.match(r"float", col[1], flags=re.IGNORECASE):
                 cols[colname] = ColumnProxy(colname, float)
+            elif re.match(r"blob", col[1], flags=re.IGNORECASE):
+                cols[colname] = ColumnProxy(colname, bytes)
             else:
                 raise NotImplementedError("Unknown parse for sql type %s" % col[1])
             
