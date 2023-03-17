@@ -26,6 +26,7 @@ class TestCorrectness(unittest.TestCase):
     # def tearDown(self):
     #     print("Completed tests.correctness")
 
+    #%%
     def test_insert_simple(self):
         self.d['correctness'].insertMany(
             [(10.0, 20.0), (30.0,40.0)]
@@ -114,12 +115,13 @@ class TestCorrectness(unittest.TestCase):
             sew.DataTableProxy
         )
 
-
+    #%%
     def test_redirect(self):
         self.assertEqual(
             self.d.cur.execute, self.d.execute,
             "execute redirect has failed")
 
+    #%%
     def test_makeSelectStatement(self):
         tablename = "tablename"
         columnNames = ["col1", "col2"]
@@ -136,6 +138,7 @@ class TestCorrectness(unittest.TestCase):
             "select statement with conditions and ordering is incorrect"
         )
 
+    #%%
     def test_uniqueness_throws(self):
         with self.assertRaises(sq.IntegrityError):
             self.d['correctness'].insertMany(
@@ -143,6 +146,7 @@ class TestCorrectness(unittest.TestCase):
                 orReplace=False
             )
 
+    #%%
     def test_insert_requires_all_columns(self):
         with self.assertRaises(sq.ProgrammingError):
             self.d['correctness'].insertMany(
@@ -154,7 +158,22 @@ class TestCorrectness(unittest.TestCase):
                 0.
             )
 
-        
+    #%%
+    def test_createView(self):
+        # Create a view with renames and amendments within select
+        self.d['correctness'].createView(
+            ["col1 as A", "(col2+10) as B"],
+        )
+        # Reload to see the new view
+        self.d.reloadTables()
+
+        # Attempt to select from the new view
+        self.d['correctness_view'].select("*")
+        results = self.d.fetchall()
+        for result in results:
+            print(dict(result))
+
+    #%%
     def test_numpy_plugin(self):
         data_f64 = np.random.randn(100).astype(np.float64)
         data_f32 = np.random.randn(100).astype(np.float32)
@@ -183,6 +202,7 @@ class TestCorrectness(unittest.TestCase):
         np.testing.assert_equal(data_f64, results['col1_f64'])
         np.testing.assert_equal(data_f32, results['col2_f32'])
 
+    #%%
     def test_numpy_insertOne_throws(self):
         data_f64 = np.random.randn(1).astype(np.float64)
         data_f32 = np.random.randn(1).astype(np.float32)

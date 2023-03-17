@@ -68,6 +68,15 @@ class StatementGeneratorMixin:
         return stmt
     
     @staticmethod
+    def _makeCreateViewStatemnt(selectStmt: str, viewtablename: str, ifNotExists: bool=False, encloseTableName: bool=False):
+        stmt = "create view%s %s as %s" % (
+            " if not exists" if ifNotExists else '',
+            '"%s"' % viewtablename if encloseTableName else viewtablename,
+            selectStmt
+        )
+        return stmt
+
+    @staticmethod
     def _makeQuestionMarks(fmt: dict):
         return ','.join(["?"] * len(fmt['cols']))
     
@@ -265,7 +274,7 @@ class CommonMethodMixin(StatementGeneratorMixin):
             Sqlite results from fetchall(). This is usually used for debugging.
         '''
         stmt = self._makeSelectStatement(["name","sql"], "sqlite_master",
-                                         conditions=["type='table'"])
+                                         conditions=["type='table' or type='view'"])
         self.cur.execute(stmt)
         results = self.cur.fetchall()
         self._tables.clear()
@@ -417,6 +426,8 @@ class TableProxy(StatementGeneratorMixin):
         ----------
         *args : iterable
             An iterable of the data for the row to be inserted.
+            No need to place the arguments in a tuple,
+            simply place them one after another before the keyword args.
             Example:
                 Two REAL columns
                 insertOne(10.0, 20.0)
@@ -483,6 +494,72 @@ class TableProxy(StatementGeneratorMixin):
         if commitNow:
             self._parent.con.commit()
         return stmt
+    
+    def createView(
+        self,
+        columnNames: list,
+        conditions: list=None,
+        orderBy: list=None,
+        viewtbl_name: str=None,
+        ifNotExists: bool=False,
+        encloseTableName: bool=False,
+        commitNow: bool=True
+    ):
+        '''
+        Creates a view based on the current table.
+        A view is essentially a pre-defined select statement, and is useful
+        for looking at data without writing to an actual table, or pre-pending
+        large select statements before other select statements.
+
+        Parameters
+        ----------
+        columnNames : list
+            Columns to extract as part of the select. See select().
+        conditions : list, optional
+            Conditions of the select. See select(). By default None.
+        orderBy : list, optional
+            Ordering of the select. See select(). By default None.
+        viewtbl_name : str, optional
+            The view's name, akin to a table name. Defaults to the current table with '_view' appended.
+        ifNotExists : bool, optional
+            Prevents creation if the view already exists. The default is False.
+        encloseTableName : bool, optional
+            Encloses the view name in quotes to allow for certain view names which may fail;
+            for example, this is necessary if the view name starts with digits.
+            The default is False.
+        commitNow : bool, optional
+            Calls commit on the database connection after the transaction if True. The default is True.
+        
+        Returns
+        -------
+        stmt : str
+            The executed create view statement.
+        '''
+        # Default view name simply appends _view
+        if viewtbl_name is None:
+            viewtbl_name = self._tbl + "_view"
+
+        # Generate select statement
+        selectStmt = self._makeSelectStatement(
+            columnNames,
+            self._tbl,
+            conditions,
+            orderBy
+        )
+
+        # Generate create view statement and execute
+        stmt = self._makeCreateViewStatemnt(
+            selectStmt,
+            viewtbl_name,
+            ifNotExists,
+            encloseTableName
+        )
+        self._parent.cur.execute(stmt)
+        if commitNow:
+            self._parent.con.commit()
+
+        return stmt
+        
 
 #%% We have a special subclass for tables that are treated as metadata for other tables
 # These tables contain a data_tblname column, and then all other columns are treated as metadata for it.
