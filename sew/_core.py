@@ -91,6 +91,15 @@ class StatementGeneratorMixin:
         return conditionsStr
     
     @staticmethod
+    def _makeCaseSingleCondition(condition: str, whenthens: list, finalElse: str):
+        # Stitch together the when/then sub statements
+        pass # TODO: complete
+
+    @staticmethod
+    def _makeCaseMultipleConditions(conditions: list, whenthens: list, finalElse: str):
+        pass # TODO: complete
+    
+    @staticmethod
     def _makeSelectStatement(columnNames: list,
                              tablename: str,
                              conditions: list=None,
