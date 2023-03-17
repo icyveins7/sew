@@ -273,7 +273,7 @@ class CommonMethodMixin(StatementGeneratorMixin):
         results : 
             Sqlite results from fetchall(). This is usually used for debugging.
         '''
-        stmt = self._makeSelectStatement(["name","sql"], "sqlite_master",
+        stmt = self._makeSelectStatement(["name","sql","type"], "sqlite_master",
                                          conditions=["type='table' or type='view'"])
         self.cur.execute(stmt)
         results = self.cur.fetchall()
@@ -281,8 +281,12 @@ class CommonMethodMixin(StatementGeneratorMixin):
 
         dataToMeta = dict()
         for result in results:
+            # Special case for view
+            if result['type'] == 'view':
+                self._tables[result[0]] = ViewProxy(self, result[0])
+
             # Special cases for metadata tables
-            if result[0].endswith(MetaTableProxy.requiredTableSuffix):
+            elif result[0].endswith(MetaTableProxy.requiredTableSuffix):
                 self._tables[result[0]] = MetaTableProxy(self, result[0], FormatSpecifier.fromSql(result[1]).generate())
                 # We also retrieve all associated data table names
                 assocDataTables = self._tables[result[0]].getDataTables()
@@ -560,6 +564,32 @@ class TableProxy(StatementGeneratorMixin):
 
         return stmt
         
+#%%
+class ViewProxy(TableProxy):
+    def __init__(self, parent: SqliteContainer, tbl: str):
+        super().__init__(parent, tbl, None)
+
+    def _populateColumns(self):
+        return None
+    
+    def __getitem__(self, col: str):
+        raise NotImplementedError("Invalid for view.")
+    
+    @property
+    def columns(self):
+        '''
+        Dictionary of ColumnProxy objects based on the table columns.
+        Not implemented for 
+        '''
+        raise NotImplementedError("Invalid for view.")
+    
+    @property
+    def columnNames(self):
+        '''
+        List of column names of the current table.
+        '''
+        raise NotImplementedError("Invalid for view.")
+    
 
 #%% We have a special subclass for tables that are treated as metadata for other tables
 # These tables contain a data_tblname column, and then all other columns are treated as metadata for it.

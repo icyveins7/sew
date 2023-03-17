@@ -162,16 +162,29 @@ class TestCorrectness(unittest.TestCase):
     def test_createView(self):
         # Create a view with renames and amendments within select
         self.d['correctness'].createView(
-            ["col1 as A", "(col2+10) as B"],
+            ["col1 as A", "(col2+10) as B"], # Warp the column value in the view too
         )
         # Reload to see the new view
         self.d.reloadTables()
 
+        # Insert some data
+        data = [(10.0, 20.0), (30.0,40.0)]
+        self.d['correctness'].insertMany(
+            data
+        )
+
         # Attempt to select from the new view
         self.d['correctness_view'].select("*")
         results = self.d.fetchall()
-        for result in results:
-            print(dict(result))
+        for i, result in enumerate(results):
+            self.assertIn("A", result.keys(), "A is a view column")
+            self.assertIn("B", result.keys(), "B is a view column")
+            self.assertEqual(
+                result['A'], data[i][0]
+            )
+            self.assertEqual(
+                result['B'], data[i][1] + 10 # Check the warped value
+            )
 
     #%%
     def test_numpy_plugin(self):
