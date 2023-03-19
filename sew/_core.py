@@ -457,6 +457,9 @@ class TableProxy(StatementGeneratorMixin):
         stmt : str
             The actual sqlite statement that was executed.
         '''
+        if isinstance(args[0], tuple) or isinstance(args[0], list):
+            raise TypeError("Do not enclose the arguments in a list/tuple yourself!")
+
         stmt = self._makeInsertStatement(
             self._tbl, self._fmt, orReplace
         )

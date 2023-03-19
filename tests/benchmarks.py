@@ -75,3 +75,7 @@ class TestBenchmarks(unittest.TestCase):
         print("%d array (transposed) reference inserts at %f/s." % (length, length/(t2-t1)))
 
         # Don't actually need to assert anything
+
+
+if __name__ == "__main__":
+    unittest.main()

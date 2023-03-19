@@ -159,6 +159,11 @@ class TestCorrectness(unittest.TestCase):
             )
 
     #%%
+    def test_insertOne_throws_if_enclosed(self):
+        with self.assertRaises(TypeError):
+            self.d['correctness'].insertOne((10.0, 20.0))
+
+    #%%
     def test_createView(self):
         # Create a view with renames and amendments within select
         self.d['correctness'].createView(
@@ -238,3 +243,7 @@ class TestCorrectness(unittest.TestCase):
             nd['nptable'].insertOne(
                 data_f64, data_f32, commitNow=True
             )
+
+
+if __name__ == "__main__":
+    unittest.main()

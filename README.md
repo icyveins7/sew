@@ -131,3 +131,18 @@ d['mytable'].insertMany(data_f64, data_f32)
 ```
 
 All datatypes should be preserved where possible; that means if you inserted an np.uint8 array, it should automatically return as an np.uint8 array. This is achieved via explicit encoding of the datatypes into the column names as suffixes. You can view these as the class global variable ```NummpyTableProxy.numpyColumnSuffixes```.
+
+
+# Running Unit Tests
+Unit tests in the ```tests``` folder are a good way to look at some examples. To run them all, simply run the following command from the main repository ```sew``` folder (where the ```tests``` folder is visible):
+
+```bash
+python -m tests
+```
+
+Individual tests can be run by simply doing:
+
+```bash
+python -m tests.correctness
+python -m tests.benchmarks
+```
