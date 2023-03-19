@@ -77,8 +77,8 @@ class StatementGeneratorMixin:
         return stmt
 
     @staticmethod
-    def _makeQuestionMarks(fmt: dict):
-        return ','.join(["?"] * len(fmt['cols']))
+    def _makeQuestionMarks(n: int): # fmt: dict):
+        return ','.join(["?"] * n)
     
     @staticmethod
     def _makeNotNullConditionals(cols: dict):
@@ -125,8 +125,18 @@ class StatementGeneratorMixin:
         stmt = "insert%s into %s values(%s)" % (
                 " or replace" if orReplace else '',
                 tablename,
-                StatementGeneratorMixin._makeQuestionMarks(fmt)
+                StatementGeneratorMixin._makeQuestionMarks(len(fmt['cols']))
             )
+        return stmt
+    
+    @staticmethod
+    def _makeInsertStatementWithNamedColumns(tablename: str, insertedColumns: list, orReplace: bool=False):
+        stmt = "insert%s into %s(%s) values(%s)" % (
+            " or replace" if orReplace else '',
+            tablename,
+            ','.join(insertedColumns),
+            StatementGeneratorMixin._makeQuestionMarks(len(insertedColumns))
+        )
         return stmt
     
     @staticmethod
@@ -437,13 +447,25 @@ class TableProxy(StatementGeneratorMixin):
 
         Parameters
         ----------
-        *args : iterable
+        *args : iterable or dict
             An iterable of the data for the row to be inserted.
             No need to place the arguments in a tuple,
             simply place them one after another before the keyword args.
             Example:
                 Two REAL columns
                 insertOne(10.0, 20.0)
+
+            Can also use a dictionary to used the named column format for insertion.
+            Missing columns will have NULLs inserted as per sqlite's norm.
+            Example:
+                # Columns are ['col1','col2','col3']
+                row = {
+                    'col1': 11,
+                    'col3': 22
+                }
+                insertOne(row)
+                # After selection, the corresponding row will be
+                # {'col1': 11, 'col2': None, 'col3': 22}
                 
         orReplace : bool, optional
             Overwrites the same data if True, otherwise a new row is created.
@@ -459,11 +481,20 @@ class TableProxy(StatementGeneratorMixin):
         '''
         if isinstance(args[0], tuple) or isinstance(args[0], list):
             raise TypeError("Do not enclose the arguments in a list/tuple yourself!")
+        
+        if isinstance(args[0], dict):
+            keys = list(args[0].keys())
+            stmt = self._makeInsertStatementWithNamedColumns(
+                self._tbl, keys, orReplace
+            )
+            self._parent.cur.execute(stmt, [args[0][k] for k in keys])
+    
+        else:
+            stmt = self._makeInsertStatement(
+                self._tbl, self._fmt, orReplace
+            )
+            self._parent.cur.execute(stmt, (args))
 
-        stmt = self._makeInsertStatement(
-            self._tbl, self._fmt, orReplace
-        )
-        self._parent.cur.execute(stmt, (args))
         if commitNow:
             self._parent.con.commit()
         return stmt

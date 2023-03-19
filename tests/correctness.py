@@ -12,7 +12,8 @@ class TestCorrectness(unittest.TestCase):
         self.fmtspec = sew.FormatSpecifier(
             [
                 ["col1", "real"],
-                ["col2", "real"]
+                ["col2", "real"],
+                ["col3", "real"]
             ],
             ["UNIQUE(col1, col2)"]
         )
@@ -29,7 +30,7 @@ class TestCorrectness(unittest.TestCase):
     #%%
     def test_insert_simple(self):
         self.d['correctness'].insertMany(
-            [(10.0, 20.0), (30.0,40.0)]
+            [(10.0, 20.0, 30.0), (30.0,40.0,50.0)]
         )
 
     #%%
@@ -142,7 +143,7 @@ class TestCorrectness(unittest.TestCase):
     def test_uniqueness_throws(self):
         with self.assertRaises(sq.IntegrityError):
             self.d['correctness'].insertMany(
-                [(0,1),(0,1)],
+                [(0,1,2),(0,1,2)],
                 orReplace=False
             )
 
@@ -161,7 +162,23 @@ class TestCorrectness(unittest.TestCase):
     #%%
     def test_insertOne_throws_if_enclosed(self):
         with self.assertRaises(TypeError):
-            self.d['correctness'].insertOne((10.0, 20.0))
+            self.d['correctness'].insertOne((10.0, 20.0, 30.0))
+
+    #%%
+    def test_insert_namedcolumns(self):
+        stmt = self.d['correctness'].insertOne(
+            {
+                'col1': 22.0,
+                'col3': 44.0
+            },
+            commitNow=True
+        )
+        self.d['correctness'].select("*")
+        # Ensure that the missing column comes back as None
+        result = self.d.fetchone()
+        self.assertEqual(result['col1'], 22.0)
+        self.assertEqual(result['col2'], None)
+        self.assertEqual(result['col3'], 44.0)
 
     #%%
     def test_createView(self):
@@ -173,7 +190,7 @@ class TestCorrectness(unittest.TestCase):
         self.d.reloadTables()
 
         # Insert some data
-        data = [(10.0, 20.0), (30.0,40.0)]
+        data = [(10.0, 20.0, 30.0), (30.0,40.0,50.0)]
         self.d['correctness'].insertMany(
             data
         )
