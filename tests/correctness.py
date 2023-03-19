@@ -29,9 +29,16 @@ class TestCorrectness(unittest.TestCase):
 
     #%%
     def test_insert_simple(self):
+        rows = [(10.0, 20.0, 30.0), (30.0,40.0,50.0)]
         self.d['correctness'].insertMany(
-            [(10.0, 20.0, 30.0), (30.0,40.0,50.0)]
+            rows, commitNow=True
         )
+        # Check selected values
+        self.d['correctness'].select("*")
+        results = self.d.fetchall()
+        for i, result in enumerate(results):
+            for k in range(3):
+                self.assertEqual(rows[i][k], result[k])
 
     #%%
     def test_create_metadata(self):
