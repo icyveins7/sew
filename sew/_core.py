@@ -539,7 +539,7 @@ class TableProxy(StatementGeneratorMixin):
         if hasattr(args[0], "__next__"): # We use this to test if its a generator, without any other imports (may not be the best solution but works for majority of cases)
             self._parent.cur.executemany(stmt, args[0])
         else: # Otherwise its just plain old data
-            self._parent.cur.executemany(stmt, *args)
+            self._parent.cur.executemany(stmt, *args) # TODO: this is actually just args[0] too? write test to check
         if commitNow:
             self._parent.con.commit()
         return stmt
