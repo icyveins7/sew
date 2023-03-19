@@ -451,6 +451,8 @@ class TableProxy(StatementGeneratorMixin):
             An iterable of the data for the row to be inserted.
             No need to place the arguments in a tuple,
             simply place them one after another before the keyword args.
+            In this mode, all columns must have a value inserted 
+            (see dict insertion below if you have missing values).
             Example:
                 Two REAL columns
                 insertOne(10.0, 20.0)
