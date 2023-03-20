@@ -511,7 +511,13 @@ class TableProxy(StatementGeneratorMixin):
         ----------
         rows : iterable or generator expression
             An iterable or generator expression of the data of multiple rows. 
+            It is assumed implicitly that every column has a value inserted i.e.
+            no missing columns. 
+            
+            Dictionary mode insertion like in insertOne() is not supported as the
+            statement would mutate on every row. See insertManyNamedColumns() for such use-cases.
             See sqlite3.executemany() for more information.
+
             Example with list of tuples/lists:
                 Two REAL columns
                 insertMany([(10.0, 20.0),(30.0, 40.0)])
@@ -542,6 +548,52 @@ class TableProxy(StatementGeneratorMixin):
 
         if commitNow:
             self._parent.con.commit()
+        return stmt
+    
+    def insertManyNamedColumns(self, dictlist: list, orReplace: bool=False, commitNow: bool=False):
+        '''
+        Performs an insert statement for multiple rows of data.
+        This method assumes that every row inserts the same set of named columns.
+
+        Parameters
+        ----------
+        dictlist : list of dictionaries
+            List of dictionaries where the keys are the columns being inserted.
+            Each row corresponds to a dictionary. Missing columns will have NULLs inserted as per sqlite's norm.
+            Example:
+                # Rows are ['A','B','C']
+                dictlist = [
+                    {'A': 1, 'B': 2},
+                    {'A': 4, 'B': 5}
+                ]
+                insertManyNamedColumns(dictlist)
+            
+        orReplace : bool, optional
+            Overwrites the same data if True, otherwise a new row is created for every clash.
+            The default is False.
+            
+        commitNow : bool, optional
+            Calls commit on the database connection after the transaction if True. The default is False.
+
+        Returns
+        -------
+        stmt : str
+            The actual sqlite statement that was executed.
+        '''
+        keys = list(dictlist[0].keys())
+        stmt = self._makeInsertStatementWithNamedColumns(
+            self._tbl, keys, orReplace
+        )
+        # Create a generator for the list of dictionaries
+        g = (
+            [dictlist[i][k] for k in keys]
+            for i in range(len(dictlist))
+        )
+        self._parent.cur.executemany(stmt, g)
+
+        if commitNow:
+            self._parent.con.commit()
+
         return stmt
     
     def createView(

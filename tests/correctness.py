@@ -40,6 +40,7 @@ class TestCorrectness(unittest.TestCase):
             for k in range(3):
                 self.assertEqual(rows[i][k], result[k])
 
+    #%%
     def test_insert_generators(self):
         data1 = np.array([10.0, 30.0])
         data2 = np.array([30.0, 40.0])
@@ -55,7 +56,7 @@ class TestCorrectness(unittest.TestCase):
             self.assertEqual(data1[i], result[0])
             self.assertEqual(data2[i], result[1])
             self.assertEqual(data3[i], result[2])
-    
+
 
     #%%
     def test_create_metadata(self):
@@ -203,6 +204,24 @@ class TestCorrectness(unittest.TestCase):
         self.assertEqual(result['col1'], 22.0)
         self.assertEqual(result['col2'], None)
         self.assertEqual(result['col3'], 44.0)
+
+    #%%
+    def test_insertMany_namedcolumns(self):
+        dictlist = [
+            {'col1': 22.0, 'col3': 44.0},
+            {'col1': 33.0, 'col3': 55.0}
+        ]
+        stmt = self.d['correctness'].insertManyNamedColumns(
+            dictlist,
+            commitNow=True
+        )
+        self.d['correctness'].select("*")
+        # Ensure that the missing column comes back as None
+        results = self.d.fetchall()
+        for i, result in enumerate(results):
+            self.assertEqual(result['col1'], dictlist[i]['col1'])
+            self.assertEqual(result['col2'], None)
+            self.assertEqual(result['col3'], dictlist[i]['col3'])
 
     #%%
     def test_createView(self):
