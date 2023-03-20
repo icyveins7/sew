@@ -40,6 +40,23 @@ class TestCorrectness(unittest.TestCase):
             for k in range(3):
                 self.assertEqual(rows[i][k], result[k])
 
+    def test_insert_generators(self):
+        data1 = np.array([10.0, 30.0])
+        data2 = np.array([30.0, 40.0])
+        data3 = np.array([50.0, 60.0])
+        self.d['correctness'].insertMany(
+            ((data1[i], data2[i], data3[i]) for i in range(len(data1))),
+            commitNow=True
+        )
+        # Check selected values
+        self.d['correctness'].select("*")
+        results = self.d.fetchall()
+        for i, result in enumerate(results):
+            self.assertEqual(data1[i], result[0])
+            self.assertEqual(data2[i], result[1])
+            self.assertEqual(data3[i], result[2])
+    
+
     #%%
     def test_create_metadata(self):
         # First check that it throws if tablename or columns are wrong

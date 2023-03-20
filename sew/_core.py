@@ -501,7 +501,7 @@ class TableProxy(StatementGeneratorMixin):
             self._parent.con.commit()
         return stmt
         
-    def insertMany(self, *args, orReplace: bool=False, commitNow: bool=False):
+    def insertMany(self, rows: list, orReplace: bool=False, commitNow: bool=False):
         '''
         Performs an insert statement for multiple rows of data.
         Note that this method assumes that a full insert is being performed
@@ -509,16 +509,18 @@ class TableProxy(StatementGeneratorMixin):
 
         Parameters
         ----------
-        *args : iterable or generator expression
+        rows : iterable or generator expression
             An iterable or generator expression of the data of multiple rows. 
             See sqlite3.executemany() for more information.
-            Example with data:
+            Example with list of tuples/lists:
                 Two REAL columns
                 insertMany([(10.0, 20.0),(30.0, 40.0)])
             Example with generator:
                 data1 = np.array([...])
                 data2 = np.array([...])
-                insertMany(((data1[i], data2[i]) for i in range(data1.size)))
+                insertMany(
+                    ((data1[i], data2[i]) for i in range(data1.size))
+                )
             
         orReplace : bool, optional
             Overwrites the same data if True, otherwise a new row is created for every clash.
@@ -535,11 +537,9 @@ class TableProxy(StatementGeneratorMixin):
         stmt = self._makeInsertStatement(
             self._tbl, self._fmt, orReplace
         )
-        # Handle a special common case where a generator is passed
-        if hasattr(args[0], "__next__"): # We use this to test if its a generator, without any other imports (may not be the best solution but works for majority of cases)
-            self._parent.cur.executemany(stmt, args[0])
-        else: # Otherwise its just plain old data
-            self._parent.cur.executemany(stmt, *args) # TODO: this is actually just args[0] too? write test to check
+
+        self._parent.cur.executemany(stmt, rows)
+
         if commitNow:
             self._parent.con.commit()
         return stmt
