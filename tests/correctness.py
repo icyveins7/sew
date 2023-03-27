@@ -206,6 +206,38 @@ class TestCorrectness(unittest.TestCase):
         self.assertEqual(result['col3'], 44.0)
 
     #%%
+    def test_makeCaseStatements(self):
+        singlecase = self.d._makeCaseSingleConditionVariable(
+            'col1', 
+            [
+                ['5', 'NULL'],
+                ['10', '20']
+            ],
+            '-1'
+        )
+        checksinglecase = "CASE col1\n" \
+            "WHEN 5 THEN NULL\n" \
+            "WHEN 10 THEN 20\n" \
+            "ELSE -1\n" \
+            "END"
+        self.assertEqual(singlecase, checksinglecase)
+
+        multiplecase = self.d._makeCaseMultipleConditionVariables(
+            [
+                ['col1 < 5', 'NULL'],
+                ['col2 > 10', '20']
+            ],
+            "-1"
+        )
+        checkmultiplecase = "CASE\n" \
+            "WHEN col1 < 5 THEN NULL\n" \
+            "WHEN col2 > 10 THEN 20\n" \
+            "ELSE -1\n" \
+            "END"
+        self.assertEqual(multiplecase, checkmultiplecase)
+
+
+    #%%
     def test_insertMany_namedcolumns(self):
         dictlist = [
             {'col1': 22.0, 'col3': 44.0},
@@ -251,7 +283,7 @@ class TestCorrectness(unittest.TestCase):
                 result['B'], data[i][1] + 10 # Check the warped value
             )
 
-    #%%
+    #%% ==================================== PLUGINS ==================================== #
     def test_numpy_plugin(self):
         data_f64 = np.random.randn(100).astype(np.float64)
         data_f32 = np.random.randn(100).astype(np.float32)

@@ -91,13 +91,80 @@ class StatementGeneratorMixin:
         return conditionsStr
     
     @staticmethod
-    def _makeCaseSingleCondition(condition: str, whenthens: list, finalElse: str):
-        # Stitch together the when/then sub statements
-        pass # TODO: complete
+    def _makeCaseSingleConditionVariable(conditionVariable: str, whenthens: list, finalElse: str):
+        """
+        Used to generate a case statement for a single condition variable.
+        By SQLite definitions, this can only test for multiple equality conditions, comparing the condition variable.
 
+        This is usually paired with an "AS somenewcolumn".
+
+        Example output:
+            CASE colA
+                WHEN 1 THEN 10
+                WHEN 2 THEN 20
+                ELSE -1
+            END
+
+        Parameters
+        ----------
+        conditionVariable : str
+            Single string specifying the condition variable (does not need to be a column by itself).
+
+        whenthens : list
+            List of sublists of length 2: the first contains the WHEN substring
+            and the second contains the THEN substring i.e.
+            the first substring evaluates the equality of the condition variable,
+            and the second substring will be the result if the equality evaluates to true.
+            For this method, the first substring should only be a simple value for comparison.
+
+        finalElse : str
+            The final ELSE statement i.e. the value of the output column if no WHEN/THEN
+            conditions evaluate to true.
+        """
+        # Stitch together the when/then sub statements
+        whenthensStr = "\n".join(["WHEN %s THEN %s" % (i[0], i[1]) for i in whenthens])
+        # Then combine with the final else statement and condition
+        s = "CASE %s\n%s\nELSE %s\nEND" % (conditionVariable, whenthensStr, finalElse)
+
+        return s
+        
     @staticmethod
-    def _makeCaseMultipleConditions(conditions: list, whenthens: list, finalElse: str):
-        pass # TODO: complete
+    def _makeCaseMultipleConditionVariables(whenthens: list, finalElse: str):
+        """
+        Used to generate a case statement for multiple condition variables.
+        In this structure, every condition variable can be unique, and more general comparisons can
+        be done like <, > etc.
+
+        This is usually paired with an "AS somenewcolumn".
+
+        Example output:
+            CASE
+                WHEN colA = 1 THEN 10
+                WHEN colB > 2 THEN 20
+                WHEN colC < 3 THEN 30
+                ELSE -1
+            END
+
+        Parameters
+        ----------
+        whenthens : list
+            List of sublists of length 2: the first contains the WHEN substring
+            and the second contains the THEN substring i.e.
+            the first substring evaluates the equality of the condition variable,
+            and the second substring will be the result if the equality evaluates to true.
+            For this method, the first substring can have more complicated expressions,
+            which may involve not just equality comparisons and also involve multiple columns.
+
+        finalElse : str
+            The final ELSE statement i.e. the value of the output column if no WHEN/THEN
+            conditions evaluate to true.
+        """
+        # Stitch together the when/then sub statements
+        whenthensStr = "\n".join(["WHEN %s THEN %s" % (i[0], i[1]) for i in whenthens])
+        # Then combine with the final else statement and condition
+        s = "CASE\n%s\nELSE %s\nEND" % (whenthensStr, finalElse)
+
+        return s
     
     @staticmethod
     def _makeSelectStatement(columnNames: list,
