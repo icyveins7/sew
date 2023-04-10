@@ -63,7 +63,7 @@ class FormatSpecifier:
             The create table statement.
         '''
         # Pull out everything after tablename, remove parentheses
-        fmtstr = re.search(r"\(.+\)", stmt).group()[1:-1] # Greedy regex 
+        fmtstr = re.search(r"\(.+\)", stmt.replace("\n","").replace("\r","")).group()[1:-1] # Greedy regex 
         # Remove any uniques
         uniques = re.finditer(r"UNIQUE\(.+?\)", fmtstr, flags=re.IGNORECASE) # Non-greedy regex
         conds = []
