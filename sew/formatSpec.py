@@ -22,13 +22,18 @@ import re
 #     ]
 # }
 class FormatSpecifier:
+    # Constant statics
     sqliteTypes = {
         int: "INTEGER",
         float: "REAL",
         str: "TEXT",
         bytes: "BLOB"
     }
+    keywordTypes = [
+        "INTEGER", "INT", "REAL", "TEXT", "BLOB",
+        "DOUBLE", "FLOAT"] # Non-exhaustive list of keyword types
     
+    # Constructor
     def __init__(self, cols: list=[], conds: list=[]):
         self.fmt = {'cols': cols, 'conds': conds}
         
@@ -71,10 +76,17 @@ class FormatSpecifier:
             fmtstr = fmtstr.replace(unique.group(), "") # Drop the substring
             conds.append(unique.group())
         
-        # Split into each column (but we remove if just whitespace)
-        fmtstrs = [s for s in fmtstr.split(",") if not s.isspace()]
-        # This should just be the columns, so stack them as we expect
-        cols = [s.strip().split(" ") for s in fmtstrs]
+        # There are some problems with the old way of getting the columns
+        # To be safe, we use another regex that extracts based on the expected types
+        cols = re.finditer(
+            r"(\w+)\s(%s)" % "|".join(cls.keywordTypes), fmtstr, flags=re.IGNORECASE
+        )
+        cols = [i.group().split() for i in cols]
+
+        # # Split into each column (but we remove if just whitespace)
+        # fmtstrs = [s for s in fmtstr.split(",") if not s.isspace()]
+        # # This should just be the columns, so stack them as we expect
+        # cols = [s.strip().split(" ") for s in fmtstrs]
         
         return cls(cols, conds)
 
