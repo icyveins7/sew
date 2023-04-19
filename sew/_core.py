@@ -190,7 +190,7 @@ class StatementGeneratorMixin:
         # Create the statement
         stmt = "select %s from %s%s%s" % (
                 columns,
-                StatementGeneratorMixin._encloseTableName(tablename) if encloseTableName else tablename,,
+                StatementGeneratorMixin._encloseTableName(tablename) if encloseTableName else tablename,
                 conditions,
                 orderBy
             )
