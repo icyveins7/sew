@@ -50,6 +50,10 @@ class StatementGeneratorMixin:
         super().__init__(*args, **kwargs)
     
     @staticmethod
+    def _encloseTableName(tablename: str):
+        return '"%s"' % tablename
+
+    @staticmethod
     def _makeTableColumns(fmt: dict):
         return ', '.join([' '.join(i) for i in fmt['cols']])
     
@@ -58,20 +62,24 @@ class StatementGeneratorMixin:
         return ', '.join(fmt['conds'])
     
     @staticmethod
-    def _makeCreateTableStatement(fmt: dict, tablename: str, ifNotExists: bool=False, encloseTableName: bool=False):
+    def _makeCreateTableStatement(
+        fmt: dict, tablename: str, ifNotExists: bool=False, encloseTableName: bool=True
+    ):
         stmt = "create table%s %s(%s%s)" % (
             " if not exists" if ifNotExists else '',
-            '"%s"' % tablename if encloseTableName else tablename,
+            StatementGeneratorMixin._encloseTableName(tablename) if encloseTableName else tablename,
             StatementGeneratorMixin._makeTableColumns(fmt),
             ", %s" % (StatementGeneratorMixin._makeTableConditions(fmt)) if len(fmt['conds']) > 0 else ''
         )
         return stmt
     
     @staticmethod
-    def _makeCreateViewStatemnt(selectStmt: str, viewtablename: str, ifNotExists: bool=False, encloseTableName: bool=False):
+    def _makeCreateViewStatemnt(
+        selectStmt: str, viewtablename: str, ifNotExists: bool=False, encloseTableName: bool=True
+    ):
         stmt = "create view%s %s as %s" % (
             " if not exists" if ifNotExists else '',
-            '"%s"' % viewtablename if encloseTableName else viewtablename,
+            StatementGeneratorMixin._encloseTableName(viewtablename) if encloseTableName else viewtablename,
             selectStmt
         )
         return stmt
@@ -170,7 +178,8 @@ class StatementGeneratorMixin:
     def _makeSelectStatement(columnNames: list,
                              tablename: str,
                              conditions: list=None,
-                             orderBy: list=None):
+                             orderBy: list=None,
+                             encloseTableName: bool=True):
         # Parse columns into comma separated string
         columns = ','.join(columnNames) if isinstance(columnNames, list) else columnNames
         # Parse conditions with additional where keyword
@@ -181,26 +190,30 @@ class StatementGeneratorMixin:
         # Create the statement
         stmt = "select %s from %s%s%s" % (
                 columns,
-                tablename,
+                StatementGeneratorMixin._encloseTableName(tablename) if encloseTableName else tablename,,
                 conditions,
                 orderBy
             )
         return stmt
     
     @staticmethod
-    def _makeInsertStatement(tablename: str, fmt: dict, orReplace: bool=False):
+    def _makeInsertStatement(
+        tablename: str, fmt: dict, orReplace: bool=False, encloseTableName: bool=True
+    ):
         stmt = "insert%s into %s values(%s)" % (
                 " or replace" if orReplace else '',
-                tablename,
+                StatementGeneratorMixin._encloseTableName(tablename) if encloseTableName else tablename,
                 StatementGeneratorMixin._makeQuestionMarks(len(fmt['cols']))
             )
         return stmt
     
     @staticmethod
-    def _makeInsertStatementWithNamedColumns(tablename: str, insertedColumns: list, orReplace: bool=False):
+    def _makeInsertStatementWithNamedColumns(
+        tablename: str, insertedColumns: list, orReplace: bool=False, encloseTableName: bool=True
+    ):
         stmt = "insert%s into %s(%s) values(%s)" % (
             " or replace" if orReplace else '',
-            tablename,
+            StatementGeneratorMixin._encloseTableName(tablename) if encloseTableName else tablename,
             ','.join(insertedColumns),
             StatementGeneratorMixin._makeQuestionMarks(len(insertedColumns))
         )
@@ -212,9 +225,10 @@ class StatementGeneratorMixin:
         return stmt
     
     @staticmethod
-    def _makeDeleteStatement(tablename: str, conditions: list=None):
+    def _makeDeleteStatement(
+        tablename: str, conditions: list=None, encloseTableName: bool=True):
         stmt = "delete from %s%s" % (
-            tablename,
+            StatementGeneratorMixin._encloseTableName(tablename) if encloseTableName else tablename,
             StatementGeneratorMixin._stitchConditions(conditions)
         )
         return stmt
@@ -232,7 +246,12 @@ class CommonMethodMixin(StatementGeneratorMixin):
         self._tables = dict()
         self.reloadTables()
         
-    def createTable(self, fmt: dict, tablename: str, ifNotExists: bool=False, encloseTableName: bool=False, commitNow: bool=True):
+    def createTable(self, 
+                    fmt: dict, 
+                    tablename: str, 
+                    ifNotExists: bool=False, 
+                    encloseTableName: bool=True, 
+                    commitNow: bool=True):
         '''
         Creates a new table.
 
@@ -249,7 +268,7 @@ class CommonMethodMixin(StatementGeneratorMixin):
         encloseTableName : bool, optional
             Encloses the table name in quotes to allow for certain table names which may fail;
             for example, this is necessary if the table name starts with digits.
-            The default is False.
+            The default is True.
         commitNow : bool, optional
             Calls commit on the database connection after the transaction if True. The default is True.
         '''
@@ -257,7 +276,12 @@ class CommonMethodMixin(StatementGeneratorMixin):
         if commitNow:
             self.con.commit()
 
-    def createMetaTable(self, fmt: dict, tablename: str, ifNotExists: bool=False, encloseTableName: bool=False, commitNow: bool=True):
+    def createMetaTable(self, 
+                        fmt: dict, 
+                        tablename: str, 
+                        ifNotExists: bool=False, 
+                        encloseTableName: bool=True, 
+                        commitNow: bool=True):
         '''
         Creates a new meta table.
 
@@ -275,7 +299,7 @@ class CommonMethodMixin(StatementGeneratorMixin):
         encloseTableName : bool, optional
             Encloses the table name in quotes to allow for certain table names which may fail;
             for example, this is necessary if the table name starts with digits.
-            The default is False.
+            The default is True.
         commitNow : bool, optional
             Calls commit on the database connection after the transaction if True. The default is True.
         '''
@@ -292,7 +316,14 @@ class CommonMethodMixin(StatementGeneratorMixin):
         if commitNow:
             self.con.commit()
 
-    def createDataTable(self, fmt: dict, tablename: str, metadata: list, metatablename: str, ifNotExists: bool=False, encloseTableName: bool=False, commitNow: bool=True):
+    def createDataTable(self, 
+                        fmt: dict, 
+                        tablename: str, 
+                        metadata: list, 
+                        metatablename: str, 
+                        ifNotExists: bool=False, 
+                        encloseTableName: bool=True, 
+                        commitNow: bool=True):
         '''
         Creates a new data table. This table will be intrinsically linked to a row in the associated metadata table.
 
@@ -313,7 +344,7 @@ class CommonMethodMixin(StatementGeneratorMixin):
         encloseTableName : bool, optional
             Encloses the table name in quotes to allow for certain table names which may fail;
             for example, this is necessary if the table name starts with digits.
-            The default is False.
+            The default is True.
         commitNow : bool, optional
             Calls commit on the database connection after the transaction if True. The default is True.
         '''
@@ -461,7 +492,8 @@ class TableProxy(StatementGeneratorMixin):
     def select(self,
                columnNames: list,
                conditions: list=None,
-               orderBy: list=None):
+               orderBy: list=None,
+               encloseTableName: bool=True):
         '''
         Performs a select on the current table.
 
@@ -491,6 +523,11 @@ class TableProxy(StatementGeneratorMixin):
                 ["col1 desc", "col2 asc"]
                 "justThisColumn asc"
 
+        encloseTableName : bool, optional
+            Encloses the table name in quotes to allow for certain table names which may fail;
+            for example, this is necessary if the table name starts with digits.
+            The default is True.
+
         Returns
         -------
         stmt : str
@@ -501,12 +538,17 @@ class TableProxy(StatementGeneratorMixin):
             columnNames,
             self._tbl,
             conditions,
-            orderBy
+            orderBy,
+            encloseTableName
         )
         self._parent.cur.execute(stmt)
         return stmt
     
-    def insertOne(self, *args, orReplace: bool=False, commitNow: bool=False):
+    def insertOne(self, 
+                  *args, 
+                  orReplace: bool=False, 
+                  commitNow: bool=False, 
+                  encloseTableName: bool=True):
         '''
         Performs an insert statement for just one row of data.
         Note that this method assumes that a full insert is being performed
@@ -543,6 +585,11 @@ class TableProxy(StatementGeneratorMixin):
         commitNow : bool, optional
             Calls commit on the database connection after the transaction if True. The default is False.
 
+        encloseTableName : bool, optional
+            Encloses the table name in quotes to allow for certain table names which may fail;
+            for example, this is necessary if the table name starts with digits.
+            The default is True.
+
         Returns
         -------
         stmt : str
@@ -554,13 +601,13 @@ class TableProxy(StatementGeneratorMixin):
         if isinstance(args[0], dict):
             keys = list(args[0].keys())
             stmt = self._makeInsertStatementWithNamedColumns(
-                self._tbl, keys, orReplace
+                self._tbl, keys, orReplace, encloseTableName
             )
             self._parent.cur.execute(stmt, [args[0][k] for k in keys])
     
         else:
             stmt = self._makeInsertStatement(
-                self._tbl, self._fmt, orReplace
+                self._tbl, self._fmt, orReplace, encloseTableName
             )
             self._parent.cur.execute(stmt, (args))
 
@@ -568,7 +615,11 @@ class TableProxy(StatementGeneratorMixin):
             self._parent.con.commit()
         return stmt
         
-    def insertMany(self, rows: list, orReplace: bool=False, commitNow: bool=False):
+    def insertMany(self, 
+                   rows: list, 
+                   orReplace: bool=False, 
+                   commitNow: bool=False, 
+                   encloseTableName: bool=True):
         '''
         Performs an insert statement for multiple rows of data.
         Note that this method assumes that a full insert is being performed
@@ -602,13 +653,18 @@ class TableProxy(StatementGeneratorMixin):
         commitNow : bool, optional
             Calls commit on the database connection after the transaction if True. The default is False.
 
+        encloseTableName : bool, optional
+            Encloses the table name in quotes to allow for certain table names which may fail;
+            for example, this is necessary if the table name starts with digits.
+            The default is True.
+
         Returns
         -------
         stmt : str
             The actual sqlite statement that was executed.
         '''
         stmt = self._makeInsertStatement(
-            self._tbl, self._fmt, orReplace
+            self._tbl, self._fmt, orReplace, encloseTableName
         )
 
         self._parent.cur.executemany(stmt, rows)
@@ -617,7 +673,11 @@ class TableProxy(StatementGeneratorMixin):
             self._parent.con.commit()
         return stmt
     
-    def insertManyNamedColumns(self, dictlist: list, orReplace: bool=False, commitNow: bool=False):
+    def insertManyNamedColumns(self, 
+                               dictlist: list, 
+                               orReplace: bool=False, 
+                               commitNow: bool=False,
+                               encloseTableName: bool=True):
         '''
         Performs an insert statement for multiple rows of data.
         This method assumes that every row inserts the same set of named columns.
@@ -642,6 +702,11 @@ class TableProxy(StatementGeneratorMixin):
         commitNow : bool, optional
             Calls commit on the database connection after the transaction if True. The default is False.
 
+        encloseTableName : bool, optional
+            Encloses the table name in quotes to allow for certain table names which may fail;
+            for example, this is necessary if the table name starts with digits.
+            The default is True.
+
         Returns
         -------
         stmt : str
@@ -649,7 +714,7 @@ class TableProxy(StatementGeneratorMixin):
         '''
         keys = list(dictlist[0].keys())
         stmt = self._makeInsertStatementWithNamedColumns(
-            self._tbl, keys, orReplace
+            self._tbl, keys, orReplace, encloseTableName
         )
         # Create a generator for the list of dictionaries
         g = (
@@ -670,7 +735,7 @@ class TableProxy(StatementGeneratorMixin):
         orderBy: list=None,
         viewtbl_name: str=None,
         ifNotExists: bool=False,
-        encloseTableName: bool=False,
+        encloseTableName: bool=True,
         commitNow: bool=True
     ):
         '''
@@ -694,7 +759,7 @@ class TableProxy(StatementGeneratorMixin):
         encloseTableName : bool, optional
             Encloses the view name in quotes to allow for certain view names which may fail;
             for example, this is necessary if the view name starts with digits.
-            The default is False.
+            The default is True.
         commitNow : bool, optional
             Calls commit on the database connection after the transaction if True. The default is True.
         
@@ -712,7 +777,8 @@ class TableProxy(StatementGeneratorMixin):
             columnNames,
             self._tbl,
             conditions,
-            orderBy
+            orderBy,
+            encloseTableName
         )
 
         # Generate create view statement and execute
