@@ -13,10 +13,25 @@ class TestBenchmarks(unittest.TestCase):
                 ["col2", "REAL"]
             ]
         )
+
+        self.fmtspeclong = sew.FormatSpecifier(
+            [
+                ["col1", "REAL"],
+                ["col2", "REAL"],
+                ["col3", "INTEGER"],
+                ["col4", "TEXT"]
+            ]
+        )
+
         self.d.createTable(
             self.fmtspec.generate(),
             "benchmark"
         )
+        self.d.createTable(
+            self.fmtspeclong.generate(),
+            "benchmarklong"
+        )
+
         self.d.reloadTables()
         # print("Running tests.benchmarks")
 
@@ -43,7 +58,7 @@ class TestBenchmarks(unittest.TestCase):
             commitNow=True
         )
         t2 = time.time()
-        print("%d generator inserts at %f/s." % (length, length/(t2-t1)))
+        print("%d generator inserts (2 cols) at %f/s." % (length, length/(t2-t1)))
         
         # Don't actually need to assert anything
 
@@ -60,7 +75,7 @@ class TestBenchmarks(unittest.TestCase):
             commitNow=True
         )
         t2 = time.time()
-        print("%d array reference inserts at %f/s." % (length, length/(t2-t1)))
+        print("%d array reference inserts (2 cols) at %f/s." % (length, length/(t2-t1)))
 
         # What if we transpose first? No difference..
         data = np.ascontiguousarray(data.T)
@@ -72,9 +87,19 @@ class TestBenchmarks(unittest.TestCase):
             commitNow=True
         )
         t2 = time.time()
-        print("%d array (transposed) reference inserts at %f/s." % (length, length/(t2-t1)))
+        print("%d array (transposed) reference inserts (2 cols) at %f/s." % (length, length/(t2-t1)))
 
         # Don't actually need to assert anything
+
+    def test_benchmarkslong_1000000(self):
+        length = 1000000
+        t1 = time.time()
+        self.d['benchmarklong'].insertMany(
+            ((i, i+1, i+2, str(i)[0]) for i in range(length)),
+            commitNow=True
+        )
+        t2 = time.time()
+        print("%d generator inserts (4 cols) at %f/s." % (length, length/(t2-t1)))
 
 
 if __name__ == "__main__":
