@@ -2,6 +2,7 @@ from ._helpers import *
 
 import unittest
 import numpy as np
+import os
 
 class TestBlobInterpreter(unittest.TestCase):
     def setUp(self):
@@ -47,6 +48,48 @@ class TestBlobInterpreter(unittest.TestCase):
         # Compare
         for k in self.data:
             self.assertEqual(interpreted[k], self.data[k])
+
+    #%%
+    def test_interpret_config(self):
+        # Construct interpreter from config file
+        p = sew.blobInterpreter.BlobInterpreter.fromConfig(
+            os.path.join(os.path.dirname(__file__), "blobcfg.ini"), 
+            "test")
+
+        # Select from the table
+        self.d[self.tablename].select("*")
+        result = self.d.fetchone()['data']
+
+        # Interpret it
+        interpreted = p.interpret(result)
+
+        # Compare
+        for k in self.data:
+            self.assertEqual(interpreted[k], self.data[k])
+
+    #%%
+    def test_interpret_dictionary(self):
+        # Construct interpreter from a dictionary
+        structure = {
+            'p1': 'u8',
+            'p2': 'fc64',
+            'p3': 'f64'
+        }
+        p = sew.blobInterpreter.BlobInterpreter.fromDictionary(structure)
+
+        # Select from the table
+        self.d[self.tablename].select("*")
+        result = self.d.fetchone()['data']
+
+        # Interpret it
+        interpreted = p.interpret(result)
+
+        # Compare
+        for k in self.data:
+            self.assertEqual(interpreted[k], self.data[k])
+
+
+        
 
 #%%
 if __name__ == '__main__':

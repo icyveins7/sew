@@ -59,6 +59,8 @@ class BlobInterpreter:
             Type strings are specified in STR_TO_TYPE.
             Descriptors are fieldnames, usually used to identify the purpose of that section of data.
         """
+        if not isinstance(structure, list):
+            raise TypeError('Structure must be a list of tuples')
         self._structure = structure
 
     @classmethod
