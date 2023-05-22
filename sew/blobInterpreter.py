@@ -1,4 +1,6 @@
 import numpy as np
+import sys
+import configparser
 
 
 #%%
@@ -7,8 +9,8 @@ class BlobInterpreter:
     Class to interpret a blob.
 
     Interpreting a blob involves a known structure, which specifies
-    1) Type (word length i.e number of bits, and the type to cast to)
-    2) Descriptor (short string describing this field)
+    1) Descriptor (short string describing this field)
+    2) Type (word length i.e number of bits, and the type to cast to)
 
     Internally, this is kept as a list of tuples.
 
@@ -47,28 +49,58 @@ class BlobInterpreter:
     }
 
     def __init__(self, structure: list=[]):
+        """
+        Creates a BlobInterpreter based on a specified structure.
+
+        Parameters
+        ----------
+        structure : list
+            Ordered list of tuples, where each tuple is of the form (descriptor, typestr).
+            Type strings are specified in STR_TO_TYPE.
+            Descriptors are fieldnames, usually used to identify the purpose of that section of data.
+        """
         self._structure = structure
 
-    def _generateUnknownDescriptor(self, index: int):
-        return "unknown%d" % index
+    @classmethod
+    def fromDictionary(cls, structure: dict):
+        """
+        Generates a BlobInterpreter from a dictionary.
+        Dictionaries are expected to be ordered as of Python 3.7.
+        """
+        version = sys.version_info
+        if version.major < 3 or (version.major == 3 and version.minor < 7):
+            raise TypeError("Dictionary interpretation requires Python 3.7 or higher")
+        return cls([(k, v) for k, v in structure.items()])
+    
+    @classmethod
+    def fromConfig(cls, configfilepath: str, sectionname: str):
+        """
+        Generates a BlobInterpreter from a configuration file.
+        This is loaded with 'configparser'; see https://docs.python.org/3/library/configparser.html.
+        Config files are expected to be ordered as of Python 3.7.
+        """
+        version = sys.version_info
+        if version.major < 3 or (version.major == 3 and version.minor < 7):
+            raise TypeError("Configparser interpretation requires Python 3.7 or higher")
 
-    def appendField(self, type: str='u8', descriptor: str=None):
+        cfg = configparser.ConfigParser()
+        cfg.read(configfilepath)
+        section = cfg[sectionname]
+        return cls([(k, v) for k, v in section.items()])
+
+    def appendField(self,  descriptor: str, type: str='u8'):
         """
         Appends a field to the structure.
 
         Parameters
         ----------
+        descriptor : str
+            Description of the field.
         type : str
             String that specifies the type to cast to.
             Defaults to 'u8'.
-        descriptor : str, optional
-            Description of the field. Defaults to None,
-            which will use an 'unknown' descriptor with an index.
         """
-        self._structure.append(
-            (type, 
-             descriptor if descriptor is not None else self._generateUnknownDescriptor(len(self._structure)))
-        )
+        self._structure.append((descriptor, type))
 
     def interpret(self, blob: bytes) -> dict:
         """
@@ -87,7 +119,8 @@ class BlobInterpreter:
 
         output = dict()
         ptr = 0
-        for typestr, desc in self._structure:
+        for desc, typestr in self._structure:
+            # Turn it into a numpy array
             interpreted = np.frombuffer(
                 blob[ptr:ptr+self.STR_TO_SIZE[typestr]],
                 dtype=self.STR_TO_TYPE[typestr]
