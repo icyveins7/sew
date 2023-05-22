@@ -89,6 +89,17 @@ class TestBenchmarks(unittest.TestCase):
         t2 = time.time()
         print("%d array (transposed) reference inserts (2 cols) at %f/s." % (length, length/(t2-t1)))
 
+        # Compare this with inserting with insertOne
+        t1 = time.time()
+        for i in range(data.shape[0]):
+            self.d['benchmark'].insertOne(
+                data[i,0], data[i,1],
+                commitNow=False
+            )
+        self.d.commit()
+        t2 = time.time()
+        print("%d array reference inserts (2 cols) performed using insertOne at %f/s." % (length, length/(t2-t1)))
+
         # Don't actually need to assert anything
 
     def test_benchmarkslong_1000000(self):
