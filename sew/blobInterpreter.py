@@ -48,6 +48,21 @@ class BlobInterpreter:
         'fc64': 16
     }
 
+    STR_TO_CSTR = {
+        'u8': '%hhu',
+        'u16': '%hu',
+        'u32': '%u',
+        'u64': '%lu',
+        'i8': '%hhd',
+        'i16': '%hd',
+        'i32': '%d',
+        'i64': '%ld',
+        'f32': '%f',
+        'f64': '%f',
+        # 'fc32': '%f', # These are a little complicated, let's not handle them for now
+        # 'fc64': '%f
+    }
+
     def __init__(self, structure: list=[]):
         """
         Creates a BlobInterpreter based on a specified structure.
@@ -131,6 +146,24 @@ class BlobInterpreter:
             ptr += self.STR_TO_SIZE[typestr]
 
             output[desc] = interpreted
+
+        return output
+    
+    def generateSplitStatement(self, blobColumnName: str, useStrFormats: bool=False):
+        """
+        Generates SQL statement fragments that correspond to 
+        splitting a blob into multiple columns based on the structure.
+        """
+        output = []
+        ptr = 1 # Sqlite substr starts from 1
+        for desc, typestr in self._structure:
+            size = self.STR_TO_SIZE[typestr]
+            fragment = f'substr({blobColumnName},{ptr},{size})' #  AS {desc}'
+            if useStrFormats:
+                fragment = f'printf("{self.STR_TO_CSTR[typestr]}", {fragment})'
+            fragment = f'{fragment} AS {desc}'
+            output.append(fragment)
+            ptr += size
 
         return output
 
