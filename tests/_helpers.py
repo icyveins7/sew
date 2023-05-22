@@ -6,3 +6,4 @@ sys.path.insert(0,
 
 import sew
 import sew.plugins
+import sew.blobInterpreter
