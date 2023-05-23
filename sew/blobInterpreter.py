@@ -15,6 +15,42 @@ class BlobInterpreter:
     Internally, this is kept as a list of tuples.
 
     This can be used to automatically generate multiple columns when selecting from a blob.
+
+    Dynamically sized sections are also supported.
+    To specify a dynamically sized section, suffix the descriptor with "_dyn".
+
+    There are 3 scenarios of dynamically sized sections:
+    ------------------------------------------------------
+    1) "Flex" arrays: only 1 of these are allowed per structure.
+    These will attempt to occupy as much of the blob as possible.
+    For example, a structure with
+        a: u8
+        b_dyn: u8
+        c: u16
+
+    will interpret a 10-byte blob as having a 7-byte array assigned to "b_dyn".
+    ------------------------------------------------------
+    2) "Externally fixed length" arrays: the length is specified in the descriptor as well,
+    like "_3_dyn".
+
+    For example, a structure with
+        a: u8
+        b_3_dyn: u8
+        c: u16
+
+    requires a 6-byte blob, where "b_3_dyn" is a 3-byte array
+    from the 2nd byte to the 4th byte i.e. [1:4]
+    ------------------------------------------------------
+    3) "Internally fixed length" arrays: the length is specified in another field.
+    These are denoted with "_?_dyn", and the associated field must have the same name,
+    but suffixed with "_len".
+
+    For example, a structure with
+        a_len: u8
+        a_?_dyn: u8
+
+    will read "a_len" for the number of elements, then use that as the size of
+    "a_?_dyn". This is commonly found in headers of packets.
     """
 
     # Define type dictionary
