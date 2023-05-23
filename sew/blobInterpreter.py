@@ -149,7 +149,7 @@ class BlobInterpreter:
 
         return output
     
-    def generateSplitStatement(self, blobColumnName: str, useStrFormats: bool=False):
+    def generateSplitStatement(self, blobColumnName: str, hexOutput: bool=False):
         """
         Generates SQL statement fragments that correspond to 
         splitting a blob into multiple columns based on the structure.
@@ -159,13 +159,34 @@ class BlobInterpreter:
         for desc, typestr in self._structure:
             size = self.STR_TO_SIZE[typestr]
             fragment = f'substr({blobColumnName},{ptr},{size})' #  AS {desc}'
-            if useStrFormats:
-                fragment = f'printf("{self.STR_TO_CSTR[typestr]}", {fragment})'
+            if hexOutput:
+                # fragment = f'printf("{self.STR_TO_CSTR[typestr]}", {fragment})'
+                fragment = f'hex({fragment})'
             fragment = f'{fragment} AS {desc}'
             output.append(fragment)
             ptr += size
 
         return output
+    
+    def hexifyBlob(self, blob: bytes) -> str:
+        """
+        Returns a hex string form of the blob, akin to what SQLite
+        would produce with its hex() function.
+
+        Parameters
+        ----------
+        blob : bytes
+            Input bytes object. This may come from a slice of the
+            SQLite BLOB column.
+
+        Returns
+        -------
+        h : str
+            Hex string formatted with %02X.
+        """
+        h = "".join(["%02X" % i for i in blob])
+
+        return h
 
 
 

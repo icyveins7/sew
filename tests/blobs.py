@@ -117,18 +117,20 @@ class TestBlobInterpreter(unittest.TestCase):
         )
         
         # Now let's try the stringified version
-        stmtfrags = p.generateSplitStatement("data", useStrFormats=True)
+        stmtfrags = p.generateSplitStatement("data", hexOutput=True)
         
         # Select again
         stmt = "select %s from %s" % (",".join(stmtfrags), self.tablename)
-        print(stmt)
+        # print(stmt)
         self.d.execute(stmt)
         result = self.d.fetchone()
 
         # Check result, failing
-        print(dict(result))
-        # Seems like there may be no good way to do this? Maybe just hex instead?
-
+        for key, value in self.data.items():
+            self.assertEqual(
+                result[key], 
+                p.hexifyBlob(value.tobytes())
+            )
 
         
 
