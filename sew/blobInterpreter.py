@@ -153,14 +153,21 @@ class BlobInterpreter:
         """
         Generates SQL statement fragments that correspond to 
         splitting a blob into multiple columns based on the structure.
+
+        Parameters
+        ----------
+        blobColumnName : str
+            The SQLite column name that contains the BLOB.
+        hexOutput : bool
+            Flag to determine whether to return as hex strings, useful for views.
+            The default is False, which will return as raw BLOBs.
         """
         output = []
         ptr = 1 # Sqlite substr starts from 1
         for desc, typestr in self._structure:
             size = self.STR_TO_SIZE[typestr]
-            fragment = f'substr({blobColumnName},{ptr},{size})' #  AS {desc}'
+            fragment = f'substr({blobColumnName},{ptr},{size})'
             if hexOutput:
-                # fragment = f'printf("{self.STR_TO_CSTR[typestr]}", {fragment})'
                 fragment = f'hex({fragment})'
             fragment = f'{fragment} AS {desc}'
             output.append(fragment)

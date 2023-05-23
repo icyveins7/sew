@@ -13,10 +13,16 @@ import unittest
 print("Begin tests")
 
 # Import correctness unittests
+print("Running correctness unittests")
 from .correctness import *
 
 # Import benchmark unittests
+print("Running benchmark unittests")
 from .benchmarks import *
+
+# Import blob unittests
+print("Running blob unittests")
+from .blobs import *
 
 # Run everything
 unittest.main()
