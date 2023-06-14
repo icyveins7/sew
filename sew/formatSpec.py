@@ -31,7 +31,7 @@ class FormatSpecifier:
     }
     keywordTypes = [
         "INTEGER", "INT", "REAL", "TEXT", "BLOB",
-        "DOUBLE", "FLOAT"] # Non-exhaustive list of keyword types
+        "DOUBLE", "FLOAT", "NUMERIC"] # Non-exhaustive list of keyword types
     
     # Constructor
     def __init__(self, cols: list=[], conds: list=[]):

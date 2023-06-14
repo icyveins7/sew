@@ -283,6 +283,31 @@ class TestCorrectness(unittest.TestCase):
                 result['B'], data[i][1] + 10 # Check the warped value
             )
 
+    #%%
+    def test_numeric_affinity(self):
+        # Create a new table with NUMERIC affinity
+        tblfmt = sew.FormatSpecifier(
+            [
+                ["col1", "NUMERIC"]
+            ]
+        )
+        stmt = self.d.createTable(
+            tblfmt.generate(), "tablenumeric")
+        self.d.reloadTables()
+
+        # Insert some data
+        data = [(10,), (30.0,)]
+        stmt = self.d["tablenumeric"].insertMany(
+            data,
+            commitNow=True
+        )
+
+        # Check results
+        self.d["tablenumeric"].select("*")
+        results = self.d.fetchall()
+        for i, result in enumerate(results):
+            self.assertEqual(result['col1'], data[i][0])
+
     #%% ==================================== PLUGINS ==================================== #
     def test_numpy_plugin(self):
         data_f64 = np.random.randn(100).astype(np.float64)

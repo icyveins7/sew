@@ -272,9 +272,11 @@ class CommonMethodMixin(StatementGeneratorMixin):
         commitNow : bool, optional
             Calls commit on the database connection after the transaction if True. The default is True.
         '''
-        self.cur.execute(self._makeCreateTableStatement(fmt, tablename, ifNotExists, encloseTableName))
+        stmt = self._makeCreateTableStatement(fmt, tablename, ifNotExists, encloseTableName)
+        self.cur.execute(stmt)
         if commitNow:
             self.con.commit()
+        return stmt
 
     def createMetaTable(self, 
                         fmt: dict, 
@@ -466,7 +468,10 @@ class TableProxy(StatementGeneratorMixin):
                 cols[colname] = ColumnProxy(colname, float)
             elif re.match(r"blob", col[1], flags=re.IGNORECASE):
                 cols[colname] = ColumnProxy(colname, bytes)
+            elif re.match(r"numeric", col[1], flags=re.IGNORECASE):
+                cols[colname] = ColumnProxy(colname, (int, float))
             else:
+                # cols[colname] = ColumnProxy(colname, object)
                 raise NotImplementedError("Unknown parse for sql type %s" % col[1])
             
         return cols
