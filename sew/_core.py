@@ -12,7 +12,7 @@ from .formatSpec import FormatSpecifier
 
 #%% Basic container, the most barebones
 class SqliteContainer:
-    def __init__(self, dbpath: str, row_factory: type=sq.Row):
+    def __init__(self, dbpath: str, row_factory: type=sq.Row, pragma_foreign_keys: bool=True):
         '''
         Instantiates an sqlite database container.
 
@@ -23,11 +23,16 @@ class SqliteContainer:
             See sqlite3.connect() for more information.
         row_factory : type, optional
             The row factory for the sqlite3 connection. The default is the in-built sqlite3.Row.
+        pragma_foreign_keys : bool, optional
+            Turns on PRAGMA FOREIGN_KEYS. The default is True.
         '''
         self.dbpath = dbpath
         self.con = sq.connect(dbpath)
         self.con.row_factory = row_factory
         self.cur = self.con.cursor()
+
+        if pragma_foreign_keys:
+            self.cur.execute("PRAGMA foreign_keys=ON")
         
 #%% Mixin to redirect common sqlite methods for brevity in code later
 class CommonRedirectMixin:
@@ -43,6 +48,7 @@ class CommonRedirectMixin:
         self.commit = self.con.commit
         self.fetchone = self.cur.fetchone
         self.fetchall = self.cur.fetchall
+        self.fetchmany = self.cur.fetchmany
         
 #%% Mixin that contains the helper methods for statement generation. Note that this builds off the standard format.
 class StatementGeneratorMixin:
