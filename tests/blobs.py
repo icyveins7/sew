@@ -9,14 +9,13 @@ class TestBlobInterpreter(unittest.TestCase):
         # Make database
         self.d = sew.Database(":memory:")
 
-        self.fmt = {
-            'cols': [
+        self.fmt = sew.FormatSpecifier(
+            [
                 ["data", "BLOB"]
-            ],
-            'conds': []
-        }
+            ]
+        )
         self.tablename = 'table1'
-        self.d.createTable(self.fmt, self.tablename)
+        self.d.createTable(self.fmt.generate(), self.tablename)
         self.d.reloadTables()
 
         # Insert some test data
