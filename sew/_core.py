@@ -68,14 +68,20 @@ class StatementGeneratorMixin:
         return ', '.join(fmt['conds'])
     
     @staticmethod
+    def _makeTableForeignKeys(fmt: dict):
+        return ', '.join(
+            ["FOREIGN KEY(%s) REFERENCES %s" % (i[0], i[1]) for i in fmt['foreign_keys']])
+    
+    @staticmethod
     def _makeCreateTableStatement(
         fmt: dict, tablename: str, ifNotExists: bool=False, encloseTableName: bool=True
     ):
-        stmt = "create table%s %s(%s%s)" % (
+        stmt = "create table%s %s(%s%s%s)" % (
             " if not exists" if ifNotExists else '',
             StatementGeneratorMixin._encloseTableName(tablename) if encloseTableName else tablename,
             StatementGeneratorMixin._makeTableColumns(fmt),
-            ", %s" % (StatementGeneratorMixin._makeTableConditions(fmt)) if len(fmt['conds']) > 0 else ''
+            ", %s" % (StatementGeneratorMixin._makeTableConditions(fmt)) if len(fmt['conds']) > 0 else '',
+            ", %s" % (StatementGeneratorMixin._makeTableForeignKeys(fmt)) if len(fmt['foreign_keys']) > 0 else ''
         )
         return stmt
     
