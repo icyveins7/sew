@@ -575,7 +575,7 @@ class TableProxy(StatementGeneratorMixin):
         conditions : list
             The filter conditions placed after "where".
             A single condition may be specified as a string.
-            
+
         commitNow : bool, optional
             Calls commit on the database connection after the transaction if True. The default is False.
 
@@ -842,6 +842,25 @@ class TableProxy(StatementGeneratorMixin):
             self._parent.con.commit()
 
         return stmt
+    
+    ### Foreign-key specific methods
+    def retrieveParentRow(self, row: sq.Row, foreignKey: str=None):
+        # If no foreign key specified, assume the first foreign key in the schema
+        if foreignKey is None:
+            fk = self._fmt['foreign_keys'][0]
+        else:
+            raise NotImplementedError("TODO: complete this")
+
+        # Extract the parent
+        parent = fk[1]
+        parentspl = parent.split("(")
+        parent_table = parentspl[0]
+        parent_col = parentspl[1][:-1]
+
+        # Now perform a select on the parent table
+        self._parent[parent_table].select("*", ["%s=%d"])
+        # TODO: complete
+
         
 #%%
 class ViewProxy(TableProxy):

@@ -22,10 +22,6 @@ class TestCorrectness(unittest.TestCase):
             "correctness"
         )
         self.d.reloadTables()
-        # print("Running tests.correctness")
-
-    # def tearDown(self):
-    #     print("Completed tests.correctness")
 
     #%%
     def test_insert_simple_and_delete(self):
@@ -346,6 +342,7 @@ class TestCorrectness(unittest.TestCase):
         self.d.createTable(fkfmt.generate(), "child")
 
         self.d.reloadTables()
+
         # Insert into parent
         self.d["parent"].insertMany(
             [(1,2),(2,4)], commitNow=True
