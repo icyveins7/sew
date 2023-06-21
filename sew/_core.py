@@ -848,7 +848,6 @@ class TableProxy(StatementGeneratorMixin):
         # If no foreign key specified, assume the first foreign key in the schema
         if foreignKey is None:
             fk = self._fmt['foreign_keys'][0]
-            print(fk)
         else:
             raise NotImplementedError("TODO: complete this")
 
@@ -863,8 +862,7 @@ class TableProxy(StatementGeneratorMixin):
 
         # Now perform a select on the parent table
         stmt = self._parent[parent_table].select("*", ["%s=%s" % (parent_col, str(row[child_col]))])
-        print(stmt)
-        # TODO: complete
+        return stmt
 
         
 #%%

@@ -412,8 +412,8 @@ class TestCorrectness(unittest.TestCase):
         # Check parent results
         self.d["parent"].select("*")
         results = self.d.fetchall()
-        for result in results:
-            print(dict(result))
+        # for result in results:
+        #     print(dict(result))
 
         # Insert into child
         self.d["child"].insertOne(
@@ -425,8 +425,10 @@ class TestCorrectness(unittest.TestCase):
         result = self.d.fetchone()
         # Retrieve an associated parent row
         self.d["child"].retrieveParentRow(result)
-
-
+        parentResults = self.d.fetchall()
+        for result in parentResults: # There should be only 1 result anyway
+            self.assertEqual(result['id'], 1)
+            self.assertEqual(result['val'], 2)
 
 
     #%% ==================================== PLUGINS ==================================== #
