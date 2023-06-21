@@ -28,7 +28,7 @@ class TestCorrectness(unittest.TestCase):
     #     print("Completed tests.correctness")
 
     #%%
-    def test_insert_simple(self):
+    def test_insert_simple_and_delete(self):
         rows = [(10.0, 20.0, 30.0), (30.0,40.0,50.0)]
         self.d['correctness'].insertMany(
             rows, commitNow=True
@@ -39,6 +39,20 @@ class TestCorrectness(unittest.TestCase):
         for i, result in enumerate(results):
             for k in range(3):
                 self.assertEqual(rows[i][k], result[k])
+
+        # Delete one of the rows
+        self.d["correctness"].delete(
+            ["col2=20.0"], commitNow=True # This should remove one of the rows
+        )
+        # Check again
+        self.d["correctness"].select("*")
+        results = self.d.fetchall()
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0][0], rows[1][0])
+        self.assertEqual(results[0][1], rows[1][1])
+        self.assertEqual(results[0][2], rows[1][2])
+        
+
 
     #%%
     def test_insert_generators(self):
@@ -358,14 +372,12 @@ class TestCorrectness(unittest.TestCase):
 
         # Then now show that removing from parent is not allowed
         with self.assertRaises(sq.IntegrityError):
-            stmt = self.d._makeDeleteStatement(
-                "parent", ["id=2"]
+            self.d["parent"].delete(
+                ["id=2"], commitNow=True
             )
-            self.d.execute(stmt)
-            self.d.commit()
         # But removing the other one should be okay
-        stmt = self.d._makeDeleteStatement(
-            "parent", ["id=1"]
+        stmt = self.d["parent"].delete(
+            ["id=1"], commitNow=True
         )
         self.d.execute(stmt)
         self.d.commit()

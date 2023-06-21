@@ -561,6 +561,38 @@ class TableProxy(StatementGeneratorMixin):
         self._parent.cur.execute(stmt)
         return stmt
     
+    def delete(self, 
+        conditions:list, 
+        commitNow: bool=False, 
+        encloseTableName: bool=True
+    ):
+        """
+        Performs a delete statement on the current table.
+        This does not have a LIMIT so all rows that fulfill the condition will be deleted.
+
+        Parameters
+        ----------
+        conditions : list
+            The filter conditions placed after "where".
+            A single condition may be specified as a string.
+            
+        commitNow : bool, optional
+            Calls commit on the database connection after the transaction if True. The default is False.
+
+        encloseTableName : bool, optional
+            Encloses the table name in quotes to allow for certain table names which may fail;
+            for example, this is necessary if the table name starts with digits.
+            The default is True.
+        """
+        
+        stmt = self._makeDeleteStatement(
+            self._tbl, conditions, encloseTableName)
+        self._parent.cur.execute(stmt)
+        if commitNow:
+            self._parent.con.commit()
+        return stmt
+
+    
     def insertOne(self, 
                   *args, 
                   orReplace: bool=False, 
