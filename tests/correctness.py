@@ -379,6 +379,53 @@ class TestCorrectness(unittest.TestCase):
         self.d.execute(stmt)
         self.d.commit()
 
+    #%%
+    def test_foreignkey_parent_retrieval(self):
+        # Create a parent table
+        parentfmt = sew.FormatSpecifier(
+            [
+                ["id", "INTEGER PRIMARY KEY"],
+                ["val", "INTEGER"]
+            ]
+        )
+        self.d.createTable(parentfmt.generate(), "parent")
+
+        # Create a table with a foreign key
+        fkfmt = sew.FormatSpecifier(
+            [
+                ["col1", "INTEGER"],
+                ["col2", "INTEGER"]
+            ],
+            foreign_keys=[
+                ["col2", "parent(id)"]
+            ]
+        )
+        self.d.createTable(fkfmt.generate(), "child")
+
+        self.d.reloadTables()
+
+        # Insert multiple rows into parent
+        self.d["parent"].insertMany(
+            [(1,2),(2,3)], commitNow=True
+        )
+
+        # Check parent results
+        self.d["parent"].select("*")
+        results = self.d.fetchall()
+        for result in results:
+            print(dict(result))
+
+        # Insert into child
+        self.d["child"].insertOne(
+            1, 1, commitNow=True
+        )
+
+        # Retrieve the child row
+        self.d["child"].select("*")
+        result = self.d.fetchone()
+        # Retrieve an associated parent row
+        self.d["child"].retrieveParentRow(result)
+
 
 
 

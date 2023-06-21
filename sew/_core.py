@@ -848,8 +848,12 @@ class TableProxy(StatementGeneratorMixin):
         # If no foreign key specified, assume the first foreign key in the schema
         if foreignKey is None:
             fk = self._fmt['foreign_keys'][0]
+            print(fk)
         else:
             raise NotImplementedError("TODO: complete this")
+
+        # Extract the child column
+        child_col = fk[0]
 
         # Extract the parent
         parent = fk[1]
@@ -858,7 +862,8 @@ class TableProxy(StatementGeneratorMixin):
         parent_col = parentspl[1][:-1]
 
         # Now perform a select on the parent table
-        self._parent[parent_table].select("*", ["%s=%d"])
+        stmt = self._parent[parent_table].select("*", ["%s=%s" % (parent_col, str(row[child_col]))])
+        print(stmt)
         # TODO: complete
 
         
