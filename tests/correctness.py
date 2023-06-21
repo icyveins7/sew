@@ -308,6 +308,71 @@ class TestCorrectness(unittest.TestCase):
         for i, result in enumerate(results):
             self.assertEqual(result['col1'], data[i][0])
 
+    #%%
+    def test_basic_foreignkey(self):
+        # Create a parent table
+        parentfmt = sew.FormatSpecifier(
+            [
+                ["id", "INTEGER PRIMARY KEY"],
+                ["val", "INTEGER"]
+            ]
+        )
+        self.d.createTable(parentfmt.generate(), "parent")
+
+        # Create a table with a foreign key
+        fkfmt = sew.FormatSpecifier(
+            [
+                ["col1", "INTEGER"],
+                ["col2", "INTEGER"]
+            ],
+            foreign_keys=[
+                ["col2", "parent(id)"]
+            ]
+        )
+        self.d.createTable(fkfmt.generate(), "child")
+
+        self.d.reloadTables()
+        # Insert into parent
+        self.d["parent"].insertMany(
+            [(1,2),(2,4)], commitNow=True
+        )
+        # Show that inserting into child fails if you don't use null
+        with self.assertRaises(sq.IntegrityError):
+            stmt = self.d["child"].insertOne(
+                {"col1": 1, "col2": 10}, commitNow=True
+            )
+        # Show that inserting null is okay
+        stmt = self.d["child"].insertOne(
+            {"col1": 1, "col2": None}, commitNow=True
+        )
+        # Check that it returns as expected
+        self.d["child"].select("*")
+        result = self.d.fetchone()
+        self.assertEqual(result['col1'], 1)
+        self.assertEqual(result['col2'], None)
+
+        # Insert one that actually references
+        self.d["child"].insertOne(
+            {"col1": 2, "col2": 2}, commitNow=True
+        )
+
+        # Then now show that removing from parent is not allowed
+        with self.assertRaises(sq.IntegrityError):
+            stmt = self.d._makeDeleteStatement(
+                "parent", ["id=2"]
+            )
+            self.d.execute(stmt)
+            self.d.commit()
+        # But removing the other one should be okay
+        stmt = self.d._makeDeleteStatement(
+            "parent", ["id=1"]
+        )
+        self.d.execute(stmt)
+        self.d.commit()
+
+
+
+
     #%% ==================================== PLUGINS ==================================== #
     def test_numpy_plugin(self):
         data_f64 = np.random.randn(100).astype(np.float64)

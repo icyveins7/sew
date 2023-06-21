@@ -960,7 +960,7 @@ class ColumnProxy:
 
 #%% Inherited class of all the above
 class Database(CommonRedirectMixin, CommonMethodMixin, SqliteContainer):
-    def __init__(self, dbpath: str, row_factory: type=sq.Row):
+    def __init__(self, dbpath: str, row_factory: type=sq.Row, pragma_foreign_keys: bool=True):
         '''
         Instantiates an sqlite database container with all extra functionality included.
         This enables:
@@ -978,8 +978,10 @@ class Database(CommonRedirectMixin, CommonMethodMixin, SqliteContainer):
             See sqlite3.connect() for more information.
         row_factory : type, optional
             The row factory for the sqlite3 connection. The default is the in-built sqlite3.Row.
+        pragma_foreign_keys : bool, optional
+            Turns on PRAGMA FOREIGN_KEYS. The default is True.
         '''
-        super().__init__(dbpath, row_factory)
+        super().__init__(dbpath, row_factory, pragma_foreign_keys)
 
     
 #%%
