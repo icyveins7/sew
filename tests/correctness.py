@@ -430,6 +430,75 @@ class TestCorrectness(unittest.TestCase):
             self.assertEqual(result['id'], 1)
             self.assertEqual(result['val'], 2)
 
+    #%%
+    def test_multiple_foreignkeys(self):
+         # Create a parent table
+        parentfmt = sew.FormatSpecifier(
+            [
+                ["id", "INTEGER PRIMARY KEY"],
+                ["val", "INTEGER"]
+            ]
+        )
+        self.d.createTable(parentfmt.generate(), "parent")
+
+        # Create another parent
+        otherparentfmt = sew.FormatSpecifier(
+            [
+                ["id", "INTEGER PRIMARY KEY"],
+                ["val", "INTEGER"]
+            ]
+        )
+        self.d.createTable(otherparentfmt.generate(), "otherparent")
+
+        # Create a table with two separate foreign keys
+        fkfmt = sew.FormatSpecifier(
+            [
+                ["col1", "INTEGER"],
+                ["col2", "INTEGER"],
+                ["col3", "INTEGER"]
+            ],
+            foreign_keys=[
+                ["col2", "parent(id)"],
+                ["col3", "otherparent(id)"]
+            ]
+        )
+        self.d.createTable(fkfmt.generate(), "child")
+
+        self.d.reloadTables()
+
+        # Insert into both parents
+        self.d["parent"].insertMany(
+            [(1,2),(2,3)], commitNow=True
+        )
+        self.d["otherparent"].insertMany(
+            [(4,8),(5,10)], commitNow=True
+        )
+
+        # Then insert into the child
+        self.d["child"].insertOne(
+            1, 1, 4, commitNow=True
+        )
+
+        # Extract from the child
+        self.d["child"].select("*")
+        childResult = self.d.fetchone()
+
+        # Extract the related parents
+        self.d["child"].retrieveParentRow(childResult, "col2")
+        parentResults = self.d.fetchall()
+        for result in parentResults: # There should be only 1 result anyway
+            self.assertEqual(result['id'], 1)
+            self.assertEqual(result['val'], 2)
+
+        self.d["child"].retrieveParentRow(childResult, "col3")
+        otherparentResults = self.d.fetchall()
+        for result in otherparentResults: # There should be only 1 result anyway
+            self.assertEqual(result['id'], 4)
+            self.assertEqual(result['val'], 8)
+
+
+
+
 
     #%% ==================================== PLUGINS ==================================== #
     def test_numpy_plugin(self):

@@ -845,12 +845,41 @@ class TableProxy(StatementGeneratorMixin):
     
     ### Foreign-key specific methods
     def retrieveParentRow(self, row: sq.Row, foreignKey: str=None):
+        """
+        Performs a select on the associated parent table and row specified by the foreign key
+        in the current child table. You are expected to call the fetch() flavours yourself afterwards.
+
+        This is equivalent to performing
+
+        "SELECT * FROM PARENT WHERE PARENT_KEY=SOME_VALUE"
+
+        Parameters
+        ----------
+        row : sq.Row
+            A row result returned from a select query on this current (child) table.
+        foreignKey : str, optional
+            The foreign key (column name) whose parent you seek, by default None,
+            which just uses the first foreign key in the schema.
+
+        Raises
+        ------
+        KeyError
+            If foreign key is specified and does not exist.
+        """
         # If no foreign key specified, assume the first foreign key in the schema
         if foreignKey is None:
             fk = self._fmt['foreign_keys'][0]
         else:
-            raise NotImplementedError("TODO: complete this")
-
+            fk = None
+            for tfk in self._fmt['foreign_keys']:
+                if tfk[0] == foreignKey:
+                    fk = tfk
+                    break
+            if fk is None:
+                raise KeyError(
+                    f"The foreign key {foreignKey} does not exist in the table {self._tbl}"
+                )
+            
         # Extract the child column
         child_col = fk[0]
 
