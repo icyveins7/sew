@@ -256,6 +256,7 @@ class CommonMethodMixin(StatementGeneratorMixin):
         super().__init__(*args, **kwargs)
         
         self._tables = dict()
+        self._relations = dict() # Establish in-memory parent->child mappings
         self.reloadTables()
         
     def createTable(self, 

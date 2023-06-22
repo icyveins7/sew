@@ -140,6 +140,16 @@ class FormatSpecifier:
                 check = True
                 break
         return check
+    
+    @staticmethod
+    def getParents(fmt: dict):
+        parents = dict()
+        for keydesc in fmt['foreign_keys']:
+            spl = keydesc[1].split("(")
+            tablename = spl[0]
+            columnname = spl[1][:-1]
+            parents[(tablename, columnname)] = keydesc[0] # Map parent -> child column
+        return parents
         
 
 #%%
