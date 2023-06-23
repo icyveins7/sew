@@ -258,6 +258,60 @@ class CommonMethodMixin(StatementGeneratorMixin):
         self._tables = dict()
         self._relations = dict() # Establish in-memory parent->child mappings
         self.reloadTables()
+
+    def reloadTables(self):
+        '''
+        Loads and parses the details of all tables from sqlite_master.
+        
+        Returns
+        -------
+        results : 
+            Sqlite results from fetchall(). This is usually used for debugging.
+        '''
+        stmt = self._makeSelectStatement(["name","sql","type"], "sqlite_master",
+                                         conditions=["type='table' or type='view'"])
+        self.cur.execute(stmt)
+        results = self.cur.fetchall()
+        self._tables.clear()
+
+        dataToMeta = dict()
+        for result in results:
+            # Special case for view
+            if result['type'] == 'view':
+                self._tables[result[0]] = ViewProxy(self, result[0])
+
+            # Special cases for metadata tables
+            elif result[0].endswith(MetaTableProxy.requiredTableSuffix):
+                self._tables[result[0]] = MetaTableProxy(self, result[0], FormatSpecifier.fromSql(result[1]).generate())
+                # We also retrieve all associated data table names
+                assocDataTables = self._tables[result[0]].getDataTables()
+                for dt in assocDataTables:
+                    dataToMeta[dt] = result[0]
+            else:
+                self._tables[result[0]] = TableProxy(self, result[0], FormatSpecifier.fromSql(result[1]).generate())
+
+        # Iterate over all the tables to upgrade them to data tables if they exist
+        for table in self._tables:
+            if table in dataToMeta.keys():
+                self._tables[table] = DataTableProxy(
+                    self._tables[table]._parent,
+                    self._tables[table]._tbl,
+                    self._tables[table]._fmt,
+                    dataToMeta[table] # Attach the metadata table's name
+                )
+
+            # While doing so, check if it has foreign keys
+            # But only if its not a view
+            if not isinstance(self._tables[table], ViewProxy):
+                parents = FormatSpecifier.getParents(self._tables[table]._fmt)
+                # Append to the relationship dict
+                for parent, child_cols in parents.items():
+                    if parent not in self._relations.keys():
+                        self._relations[parent] = list()
+                    for child_col in child_cols:
+                        self._relations[parent].append((table, child_col))
+            
+        return results
         
     def createTable(self, 
                     fmt: dict, 
@@ -395,54 +449,26 @@ class CommonMethodMixin(StatementGeneratorMixin):
         self.cur.execute(self._makeDropStatement(tablename))
         if commitNow:
             self.con.commit()
-            
-    def reloadTables(self):
-        '''
-        Loads and parses the details of all tables from sqlite_master.
-        
-        Returns
-        -------
-        results : 
-            Sqlite results from fetchall(). This is usually used for debugging.
-        '''
-        stmt = self._makeSelectStatement(["name","sql","type"], "sqlite_master",
-                                         conditions=["type='table' or type='view'"])
-        self.cur.execute(stmt)
-        results = self.cur.fetchall()
-        self._tables.clear()
-
-        dataToMeta = dict()
-        for result in results:
-            # Special case for view
-            if result['type'] == 'view':
-                self._tables[result[0]] = ViewProxy(self, result[0])
-
-            # Special cases for metadata tables
-            elif result[0].endswith(MetaTableProxy.requiredTableSuffix):
-                self._tables[result[0]] = MetaTableProxy(self, result[0], FormatSpecifier.fromSql(result[1]).generate())
-                # We also retrieve all associated data table names
-                assocDataTables = self._tables[result[0]].getDataTables()
-                for dt in assocDataTables:
-                    dataToMeta[dt] = result[0]
-            else:
-                self._tables[result[0]] = TableProxy(self, result[0], FormatSpecifier.fromSql(result[1]).generate())
-
-        # Iterate over all the tables to upgrade them to data tables if they exist
-        for table in self._tables:
-            if table in dataToMeta.keys():
-                self._tables[table] = DataTableProxy(
-                    self._tables[table]._parent,
-                    self._tables[table]._tbl,
-                    self._tables[table]._fmt,
-                    dataToMeta[table] # Attach the metadata table's name
-                )
-            
-        return results
     
     ### These are useful methods to direct calls to a table or query tables
     def __getitem__(self, tablename: str):
         return self._tables[tablename]
             
+    @property
+    def relationships(self):
+        """
+        Returns a dictionary of parent (key) to child (value) relationships.
+        Each key is a 2-tuple of the form tablename,columnname.
+        Values are returned as a list of 2-tuples, as multiple children may
+        point to the same parent, even from within the same child table.
+
+        Returns
+        -------
+        dict
+            Parent to child relationship dictionary.
+        """
+        return self._relations
+
     @property
     def tablenames(self):
         '''

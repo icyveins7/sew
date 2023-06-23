@@ -148,7 +148,11 @@ class FormatSpecifier:
             spl = keydesc[1].split("(")
             tablename = spl[0]
             columnname = spl[1][:-1]
-            parents[(tablename, columnname)] = keydesc[0] # Map parent -> child column
+            # For the weird cases where the same parent column
+            # is pointed to by two child columns in the same table
+            if (tablename, columnname) not in parents:
+                parents[(tablename, columnname)] = []
+            parents[(tablename, columnname)].append(keydesc[0]) # Map parent -> child column
         return parents
         
 

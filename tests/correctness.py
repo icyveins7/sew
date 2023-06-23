@@ -496,7 +496,72 @@ class TestCorrectness(unittest.TestCase):
             self.assertEqual(result['id'], 4)
             self.assertEqual(result['val'], 8)
 
+    #%%
+    def test_foreignkey_relationships(self):
+        # Create a bunch of parent tables
+        parentfmt = sew.FormatSpecifier(
+            [
+                ["id", "INTEGER PRIMARY KEY"],
+                ["val", "INTEGER"]
+            ]
+        )
+        self.d.createTable(parentfmt.generate(), "parent1")
+        self.d.createTable(parentfmt.generate(), "parent2")
+        self.d.createTable(parentfmt.generate(), "parent3")
 
+        # Create a bunch of child tables
+        childfmt12 = sew.FormatSpecifier(
+            [
+                ["col1", "INTEGER"],
+                ["col2", "INTEGER"],
+                ["col3", "INTEGER"]
+            ],
+            foreign_keys=[
+                ["col1", "parent1(id)"],
+                ["col2", "parent2(id)"]
+            ]
+        )
+        self.d.createTable(childfmt12.generate(), "child12")
+
+        childfmt23 = sew.FormatSpecifier(
+            [
+                ["col1", "INTEGER"],
+                ["col2", "INTEGER"],
+                ["col3", "INTEGER"]
+            ],
+            foreign_keys=[
+                ["col2", "parent2(id)"],
+                ["col3", "parent3(id)"],
+                ["col1", "parent3(id)"]
+            ]
+        )
+        self.d.createTable(childfmt23.generate(), "child23")
+
+        self.d.reloadTables()
+
+        # Test the relationship dictionary
+        families = self.d.relationships
+
+        # Check for parent1
+        self.assertTrue(
+            ("child12", "col1") in families[("parent1", "id")]
+        )
+
+        # Check for parent2 (two children in diff tables to same parent)
+        self.assertTrue(
+            ("child23", "col2") in families[("parent2", "id")]
+        )
+        self.assertTrue(
+            ("child12", "col2") in families[("parent2", "id")]
+        )
+
+        # Check for parent3 (two children in same table to same parent)
+        self.assertTrue(
+            ("child23", "col3") in families[("parent3", "id")]
+        )
+        self.assertTrue(
+            ("child23", "col1") in families[("parent3", "id")]
+        )
 
 
 
