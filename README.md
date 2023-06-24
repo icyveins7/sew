@@ -1,7 +1,8 @@
-# sew
+# sew ![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/icyveins7/sew/run-unit-tests.yml)
+
 Sqlite Extensions &amp; Wrappers for Python.
 
-Tired of writing create/insert/select statements yourself? Then just subclass this.
+Tired of writing create/insert/select statements yourself? Or maybe you'd just like to access your tables with keys like a Pythonic dictionary? Then just subclass this.
 
 # Motivation
 
