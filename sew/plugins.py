@@ -220,7 +220,7 @@ class NumpyTableProxy(TableProxy):
                 try:
                     r[key][i] = row[key] # First try to just write directly, this should work if it returns a pythonic type
                 except ValueError as e: # Otherwise it is a bytes-like object, try to parse it as a buffer to the correct dtype
-                    r[key][i] = np.frombuffer(row[key], r[key].dtype)
+                    r[key][i] = np.frombuffer(row[key], r[key].dtype)[0] # TODO: maybe we can perform it at the array level instead of the element level?
 
 
             # Increment counter
