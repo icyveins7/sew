@@ -61,6 +61,9 @@ fmt = {
     ],
     'conds': [
         "UNIQUE(col1, col2)" # this is just a list of strings, with each one specifying an extra condition
+    ],
+    'foreign_keys': [
+        ["col1", "parent_table(parent_col)"] # This specifies a foreign key relationship
     ]
 }
 ```
@@ -72,23 +75,25 @@ fmtspec = sew.FormatSpecifier()
 fmtspec.addColumn('col1', int) # Yes, it accepts the pythonic type directly
 fmtspec.addColumn('col2', float)
 fmtspec.addUniques(['col1','col2'])
+fmtspec.addForeignKey(["col1", "parent_table(parent_col)"])
 fmt = fmtspec.generate() # Then use this wherever you need, like the createTable() call
 ```
 
 ## Selects
 
 ```python
-d["mytablename"].select(["thisColumn", "thatColumn"], ["otherColumn < 10"])
+stmt = d["mytablename"].select(["thisColumn", "thatColumn"], ["otherColumn < 10"])
 results = d.fetchall()
+print(stmt) # Most commands return the statement generated, so you can check if needed
 ```
 
 ## Inserts
 
-For now, this assumes insertions of complete rows (which is probably the most common scenario).
+Insertions of complete rows (which is probably the most common scenario):
 
 ```python
 d["mytablename"].insertOne(
-    (1, 2.0),
+    1, 2.0, # For insertOne, just place the arguments one after another; no need to pack into a list/tuple/dict
     orReplace=True # use a replace instead of insert
 )
 
@@ -96,6 +101,16 @@ data = ((i, float(i+1)) for i in range(10)) # Generator expression
 d["mytablename"].insertMany(
     data # Anything that works with executemany should work here
 ) 
+```
+
+You can also insert specific columns:
+
+```python
+# Columns are col1, col2, col3
+d["mytablename"].insertOne(
+    {'col1': 1, 'col2': 2}, # Only insert 2 column values, leaving col3 NULL
+    orReplace=True # use a replace instead of insert
+)
 ```
 
 ## Other Examples
@@ -134,7 +149,7 @@ d['mytable'].insertMany(data_f64, data_f32)
 All datatypes should be preserved where possible; that means if you inserted an np.uint8 array, it should automatically return as an np.uint8 array. This is achieved via explicit encoding of the datatypes into the column names as suffixes. You can view these as the class global variable ```NummpyTableProxy.numpyColumnSuffixes```.
 
 
-# Running Unit Tests
+# Running Unit Tests and Benchmarks
 Unit tests in the ```tests``` folder are a good way to look at some examples. To run them all, simply run the following command from the main repository ```sew``` folder (where the ```tests``` folder is visible):
 
 ```bash
@@ -145,5 +160,10 @@ Individual tests can be run by simply doing:
 
 ```bash
 python -m tests.correctness
-python -m tests.benchmarks
+```
+
+Benchmarks are similarly run:
+
+```bash
+python -m benchmarks
 ```
