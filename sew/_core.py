@@ -515,8 +515,26 @@ class TableProxy(StatementGeneratorMixin):
             
         return cols
     
-    def __getitem__(self, col: str):
-        return self._cols[col]
+
+    def __getitem__(self, i: int | slice):
+        # For now, we don't have a built-in generator for limits and offsets
+        # So we must build the statement ourselves
+        if isinstance(i, int):
+            self._parent.cur.execute(
+                "SELECT * FROM %s LIMIT %d OFFSET %d" % (
+                    self._tbl, 1, i
+                )
+            )
+        elif isinstance(i, slice):
+            if i.step is not None and i.step != 1:
+                raise ValueError("Cannot use a slice with a step")
+            self._parent.cur.execute(
+                "SELECT * FROM %s LIMIT %d OFFSET %d" % (
+                    self._tbl, i.stop - i.start, i.start
+                )
+            )
+        results = self._parent.cur.fetchall()
+        return results
     
     @property
     def columns(self):

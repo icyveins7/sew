@@ -563,6 +563,24 @@ class TestCorrectness(unittest.TestCase):
             ("child23", "col1") in families[("parent3", "id")]
         )
 
+    #%%
+    def test_table_bracket_access(self):
+        self.d['correctness'].insertMany(
+            [(i,i+1,i+2) for i in range(10)], commitNow=True
+        )
+
+        results = self.d['correctness'][0:5]
+
+        for i, result in enumerate(results):
+            self.assertEqual(result['col1'], i)
+            self.assertEqual(result['col2'], i+1)
+            self.assertEqual(result['col3'], i+2)
+
+        midresults = self.d['correctness'][5:8]
+        for i, result in enumerate(midresults):
+            self.assertEqual(result['col1'], i+5)
+            self.assertEqual(result['col2'], i+6)
+            self.assertEqual(result['col3'], i+7)
 
 
     #%% ==================================== PLUGINS ==================================== #
