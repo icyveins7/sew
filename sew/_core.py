@@ -516,7 +516,7 @@ class TableProxy(StatementGeneratorMixin):
         return cols
     
 
-    def __getitem__(self, i: int | slice):
+    def __getitem__(self, i: slice):
         # For now, we don't have a built-in generator for limits and offsets
         # So we must build the statement ourselves
         if isinstance(i, int):
