@@ -569,6 +569,13 @@ class TestCorrectness(unittest.TestCase):
             [(i,i+1,i+2) for i in range(10)], commitNow=True
         )
 
+        # Test a single row
+        result = self.d['correctness'][3]
+        self.assertEqual(result['col1'], 3)
+        self.assertEqual(result['col2'], 4)
+        self.assertEqual(result['col3'], 5)
+
+        # Test slices
         results = self.d['correctness'][0:5]
 
         for i, result in enumerate(results):
@@ -581,6 +588,10 @@ class TestCorrectness(unittest.TestCase):
             self.assertEqual(result['col1'], i+5)
             self.assertEqual(result['col2'], i+6)
             self.assertEqual(result['col3'], i+7)
+
+        # Test error if steps are provided
+        with self.assertRaises(ValueError):
+            self.d['correctness'][2:7:2]
 
 
     #%% ==================================== PLUGINS ==================================== #

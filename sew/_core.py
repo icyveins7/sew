@@ -525,6 +525,7 @@ class TableProxy(StatementGeneratorMixin):
                     self._tbl, 1, i
                 )
             )
+            results = self._parent.cur.fetchone()
         elif isinstance(i, slice):
             if i.step is not None and i.step != 1:
                 raise ValueError("Cannot use a slice with a step")
@@ -533,7 +534,7 @@ class TableProxy(StatementGeneratorMixin):
                     self._tbl, i.stop - i.start, i.start
                 )
             )
-        results = self._parent.cur.fetchall()
+            results = self._parent.cur.fetchall()
         return results
     
     @property
