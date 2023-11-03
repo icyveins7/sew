@@ -81,7 +81,7 @@ class StatementGeneratorMixin:
             StatementGeneratorMixin._encloseTableName(tablename) if encloseTableName else tablename,
             StatementGeneratorMixin._makeTableColumns(fmt),
             ", %s" % (StatementGeneratorMixin._makeTableConditions(fmt)) if len(fmt['conds']) > 0 else '',
-            ", %s" % (StatementGeneratorMixin._makeTableForeignKeys(fmt)) if len(fmt['foreign_keys']) > 0 else ''
+            ", %s" % (StatementGeneratorMixin._makeTableForeignKeys(fmt)) if fmt.get('foreign_keys') is not None and len(fmt['foreign_keys']) > 0 else ''
         )
         return stmt
     
