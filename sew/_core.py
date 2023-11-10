@@ -389,7 +389,8 @@ class CommonMethodMixin(StatementGeneratorMixin):
                         fmt: dict, 
                         tablename: str, 
                         metadata: list, 
-                        metatablename: str, 
+                        metatablename: str,
+                        metaOrReplace: bool=False,
                         ifNotExists: bool=False, 
                         encloseTableName: bool=True, 
                         commitNow: bool=True):
@@ -404,10 +405,13 @@ class CommonMethodMixin(StatementGeneratorMixin):
             generate() to create this.
         tablename : str
             The table name.
-        metadata : dict
+        metadata : list
             The metadata to insert into the metadata table associated with this data table.
         metatablename : str
             The metadata table name.
+        metaOrReplace : bool, optional
+            Whether to use orReplace when inserting into the metadata table.
+            Useful when the metadata table has UNIQUE constraints.
         ifNotExists : bool, optional
             Prevents creation if the table already exists. The default is False.
         encloseTableName : bool, optional
@@ -425,7 +429,9 @@ class CommonMethodMixin(StatementGeneratorMixin):
         # Insert the associated metadata into the metadata table
         metastmt = self._makeInsertStatement(
             metatablename,
-            self._tables[metatablename]._fmt)
+            self._tables[metatablename]._fmt,
+            orReplace=metaOrReplace,
+            encloseTableName=encloseTableName)
         metadata.insert(0, tablename) # The first argument is the name of the data table
         self.cur.execute(metastmt, metadata)
 
