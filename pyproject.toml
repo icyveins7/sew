@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sew"
+authors = [
+    {name = "icyveins7"}
+]
+description = "Sqlite Extensions and Wrappers"
+license = {file = "LICENSE"}
+version = "0.0.1"
+keywords = ["sqlite", "wrapper", "extensions"]
+
+[project.urls]
+Repository = "https://github.com/icyveins7/sew"
+
+[project.optional-dependencies]
+plugins = [
+    "numpy",
+    "pandas",
+    "python-dateutil",
+    "pytz",
+    "six",
+    "tzdata"
+]
