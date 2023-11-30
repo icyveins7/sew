@@ -10,6 +10,10 @@ Many processes for data manipulation with sqlite databases can be achieved with 
 
 For example, Pandas currently does not support replacement inserts on a per-row basis. The .to_sql() method will only replace the entire table if specified.
 
+A general ethos for this framework is to reduce the developer's code typed; if the sqlite statement you require is complicated then it may well be more efficient to use a custom statement yourself. Fundamentally, ```sew``` is still meant to only function as a wrapper around the default-included sqlite for Python.
+
+However, for simple CRUD operations it should be easier to use methods this framework provides!
+
 # Installation
 As this is currently not a wheel, simply clone and then install in editable mode.
 
@@ -20,6 +24,12 @@ pip install -e .
 ```
 
 You should then be able to use it from anywhere. Updates just require a ```git pull``` command on your repository folder.
+
+There are no additional requirements to install to use the base functionality, as this is just a wrapper around the default-included sqlite for Python. However, if you want to use the extra plugins, you can do
+
+```
+pip install -r plugin_requirements.txt
+```
 
 # Usage
 The most common use-case is to initialise a ```Database``` object, just like you would with sqlite3.
@@ -77,6 +87,25 @@ fmtspec.addColumn('col2', float)
 fmtspec.addUniques(['col1','col2'])
 fmtspec.addForeignKey(["col1", "parent_table(parent_col)"])
 fmt = fmtspec.generate() # Then use this wherever you need, like the createTable() call
+```
+
+Example of how the framework uses this in the create table example:
+
+```python
+stmt = d.createTable(fmt, 'tbl2')
+>>> 'create table "tbl2"(col1 INTEGER, col2 REAL, UNIQUE(col1,col2), FOREIGN KEY(col1) REFERENCES parent_table(parent_col))'
+```
+
+You can also reference a format specifier from the table; this should be identical to what was used during creation.
+But for cases where you need a python-parsable object that reflects the table schema:
+
+```python
+d.reloadTables() # Populates the tables internally so you can reference them like a dictionary
+fmt = d['tbl2'].formatSpecifier
+
+>>> {'cols': [['col1', 'INTEGER'], ['col2', 'REAL']],
+     'conds': ['UNIQUE(col1,col2)'],
+     'foreign_keys': [['col1', 'parent_table(parent_col)']]}
 ```
 
 ## Selects

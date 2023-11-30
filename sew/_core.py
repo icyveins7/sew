@@ -542,6 +542,14 @@ class TableProxy(StatementGeneratorMixin):
             )
             results = self._parent.cur.fetchall()
         return results
+
+    @property
+    def formatSpecifier(self):
+        '''
+        The format specifier for this table.
+        Should effectively match the format specifier used during creation.
+        '''
+        return self._fmt
     
     @property
     def columns(self):

@@ -24,6 +24,13 @@ class TestCorrectness(unittest.TestCase):
         self.d.reloadTables()
 
     #%%
+    def test_formatSpecifier_getter(self):
+        self.assertEqual(
+            self.fmtspec.generate(),
+            self.d["correctness"].formatSpecifier
+        )
+
+    #%%
     def test_insert_simple_and_delete(self):
         rows = [(10.0, 20.0, 30.0), (30.0,40.0,50.0)]
         self.d['correctness'].insertMany(
