@@ -259,6 +259,56 @@ class CommonMethodMixin(StatementGeneratorMixin):
         self._relations = dict() # Establish in-memory parent->child mappings
         self.reloadTables()
 
+    def _parseTable(
+        self,
+        table_name: str,
+        table_sql: str,
+        table_type: str
+    ) -> dict:
+        """
+        Parses the parameters of a table and appropriately
+        populates an internal dictionary with a particular
+        table subclass object.
+
+        Parameters
+        ----------
+        table_name : str
+            Table name.
+        table_sql : str
+            SQLite statement used in generation of the table.
+        table_type : str
+            Table type, either 'table' or 'view'.
+
+        Returns
+        -------
+        dataToMeta: dict
+            An additional dictionary containing a lookup from
+            DataTable: key -> MetaTable: value. Formed from querying
+            the MetaTable object.
+        """
+        dataToMeta = dict()
+        # Special case for view
+        if table_type == 'view':
+            self._tables[table_name] = ViewProxy(self, table_name)
+
+        # Special cases for metadata tables
+        elif table_name.endswith(MetaTableProxy.requiredTableSuffix):
+            self._tables[table_name] = MetaTableProxy(
+                self, table_name, 
+                FormatSpecifier.fromSql(table_sql).generate())
+            # We also retrieve all associated data table names
+            assocDataTables = self._tables[table_name].getDataTables()
+            for dt in assocDataTables:
+                dataToMeta[dt] = table_name
+        else:
+            self._tables[table_name] = TableProxy(
+                self, table_name, 
+                FormatSpecifier.fromSql(table_sql).generate())
+
+        return dataToMeta
+
+
+
     def reloadTables(self):
         '''
         Loads and parses the details of all tables from sqlite_master.
@@ -276,19 +326,11 @@ class CommonMethodMixin(StatementGeneratorMixin):
 
         dataToMeta = dict()
         for result in results:
-            # Special case for view
-            if result['type'] == 'view':
-                self._tables[result[0]] = ViewProxy(self, result[0])
-
-            # Special cases for metadata tables
-            elif result[0].endswith(MetaTableProxy.requiredTableSuffix):
-                self._tables[result[0]] = MetaTableProxy(self, result[0], FormatSpecifier.fromSql(result[1]).generate())
-                # We also retrieve all associated data table names
-                assocDataTables = self._tables[result[0]].getDataTables()
-                for dt in assocDataTables:
-                    dataToMeta[dt] = result[0]
-            else:
-                self._tables[result[0]] = TableProxy(self, result[0], FormatSpecifier.fromSql(result[1]).generate())
+            newDtm = self._parseTable(
+                result['name'], result['sql'], result['type']
+            )
+            # Merge into dataToMeta
+            dataToMeta.update(newDtm)
 
         # Iterate over all the tables to upgrade them to data tables if they exist
         for table in self._tables:
