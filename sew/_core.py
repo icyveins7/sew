@@ -360,7 +360,7 @@ class CommonMethodMixin(StatementGeneratorMixin):
                     tablename: str, 
                     ifNotExists: bool=False, 
                     encloseTableName: bool=True, 
-                    commitNow: bool=True):
+                    commitNow: bool=False):
         '''
         Creates a new table.
 
@@ -392,7 +392,7 @@ class CommonMethodMixin(StatementGeneratorMixin):
                         tablename: str, 
                         ifNotExists: bool=False, 
                         encloseTableName: bool=True, 
-                        commitNow: bool=True):
+                        commitNow: bool=False):
         '''
         Creates a new meta table.
 
@@ -435,7 +435,7 @@ class CommonMethodMixin(StatementGeneratorMixin):
                         metaOrReplace: bool=False,
                         ifNotExists: bool=False, 
                         encloseTableName: bool=True, 
-                        commitNow: bool=True):
+                        commitNow: bool=False):
         '''
         Creates a new data table. This table will be intrinsically linked to a row in the associated metadata table.
 
@@ -887,7 +887,7 @@ class TableProxy(StatementGeneratorMixin):
         viewtbl_name: str=None,
         ifNotExists: bool=False,
         encloseTableName: bool=True,
-        commitNow: bool=True
+        commitNow: bool=False
     ):
         '''
         Creates a view based on the current table.
