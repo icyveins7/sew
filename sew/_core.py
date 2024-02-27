@@ -1101,6 +1101,15 @@ class ColumnProxy:
         return "%s != %s" % (self.name, str(x))
 
 
+class ColumnProxyContainer:
+    def __init__(self, cols: dict[ColumnProxy]):
+        self._cols = cols
+        # Write a setattr for each column name
+        for colProxy in self._cols:
+            setattr(self, colProxy, self._cols[colProxy])
+
+
+
 #%% Inherited class of all the above
 class Database(CommonRedirectMixin, CommonMethodMixin, SqliteContainer):
     def __init__(self, dbpath: str, row_factory: type=sq.Row, pragma_foreign_keys: bool=True):

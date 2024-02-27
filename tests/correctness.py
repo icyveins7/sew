@@ -599,6 +599,21 @@ class TestCorrectness(unittest.TestCase):
         # Test error if steps are provided
         with self.assertRaises(ValueError):
             self.d['correctness'][2:7:2]
+    
+    #%%
+    def test_column_proxy_container(self):
+        table = self.d['correctness']
+        self.assertTrue(
+            isinstance(table.columns, dict)
+        )
+        container = sew.ColumnProxyContainer(table.columns)
+        # Check that we can access it like an attribute directly
+        # print(container.col1)
+        # print(table.columns['col1'])
+        # ColumnProxy has an == override, but the object is identical so we use 'is' to compare
+        self.assertIs(container.col1, table.columns['col1'])
+        self.assertIs(container.col2, table.columns['col2'])
+        self.assertIs(container.col3, table.columns['col3'])
 
 
     #%% ==================================== PLUGINS ==================================== #
