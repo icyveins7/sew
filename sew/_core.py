@@ -379,7 +379,8 @@ class CommonMethodMixin(StatementGeneratorMixin):
             for example, this is necessary if the table name starts with digits.
             The default is True.
         commitNow : bool, optional
-            Calls commit on the database connection after the transaction if True. The default is True.
+            Calls commit on the database connection after the transaction if True. 
+            The default is False.
         '''
         stmt = self._makeCreateTableStatement(fmt, tablename, ifNotExists, encloseTableName)
         self.cur.execute(stmt)
@@ -412,7 +413,8 @@ class CommonMethodMixin(StatementGeneratorMixin):
             for example, this is necessary if the table name starts with digits.
             The default is True.
         commitNow : bool, optional
-            Calls commit on the database connection after the transaction if True. The default is True.
+            Calls commit on the database connection after the transaction if True. 
+            The default is False.
         '''
 
         # Check if the format and table names are valid
@@ -461,7 +463,8 @@ class CommonMethodMixin(StatementGeneratorMixin):
             for example, this is necessary if the table name starts with digits.
             The default is True.
         commitNow : bool, optional
-            Calls commit on the database connection after the transaction if True. The default is True.
+            Calls commit on the database connection after the transaction if True. 
+            The default is False.
         '''
 
         # Check if the meta table exists
@@ -492,7 +495,8 @@ class CommonMethodMixin(StatementGeneratorMixin):
         tablename : str
             The table name.
         commitNow : bool, optional
-            Calls commit on the database connection after the transaction if True. The default is False.
+            Calls commit on the database connection after the transaction if True. 
+            The default is False.
         '''
         self.cur.execute(self._makeDropStatement(tablename))
         if commitNow:
@@ -679,7 +683,8 @@ class TableProxy(StatementGeneratorMixin):
             A single condition may be specified as a string.
 
         commitNow : bool, optional
-            Calls commit on the database connection after the transaction if True. The default is False.
+            Calls commit on the database connection after the transaction if True. 
+            The default is False.
 
         encloseTableName : bool, optional
             Encloses the table name in quotes to allow for certain table names which may fail;
@@ -734,7 +739,8 @@ class TableProxy(StatementGeneratorMixin):
             The default is False.
             
         commitNow : bool, optional
-            Calls commit on the database connection after the transaction if True. The default is False.
+            Calls commit on the database connection after the transaction if True. 
+            The default is False.
 
         encloseTableName : bool, optional
             Encloses the table name in quotes to allow for certain table names which may fail;
@@ -802,7 +808,8 @@ class TableProxy(StatementGeneratorMixin):
             The default is False.
             
         commitNow : bool, optional
-            Calls commit on the database connection after the transaction if True. The default is False.
+            Calls commit on the database connection after the transaction if True. 
+            The default is False.
 
         encloseTableName : bool, optional
             Encloses the table name in quotes to allow for certain table names which may fail;
@@ -851,7 +858,8 @@ class TableProxy(StatementGeneratorMixin):
             The default is False.
             
         commitNow : bool, optional
-            Calls commit on the database connection after the transaction if True. The default is False.
+            Calls commit on the database connection after the transaction if True.
+            The default is False.
 
         encloseTableName : bool, optional
             Encloses the table name in quotes to allow for certain table names which may fail;
@@ -912,7 +920,8 @@ class TableProxy(StatementGeneratorMixin):
             for example, this is necessary if the view name starts with digits.
             The default is True.
         commitNow : bool, optional
-            Calls commit on the database connection after the transaction if True. The default is True.
+            Calls commit on the database connection after the transaction if True.
+            The default is False.
         
         Returns
         -------
