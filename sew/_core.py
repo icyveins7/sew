@@ -2,7 +2,7 @@
 """
 Created on Mon Dec  5 17:23:06 2022
 
-@author: lken
+@author: icyveins7 
 """
 
 import sqlite3 as sq
