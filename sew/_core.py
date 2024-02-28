@@ -564,6 +564,9 @@ class CommonMethodMixin(StatementGeneratorMixin):
         self.cur.execute(self._makeDropStatement(tablename))
         if commitNow:
             self.con.commit()
+
+        # Remove from internal structure
+        self._tables.pop(tablename) # TODO: handle meta/data table complications?
     
     ### These are useful methods to direct calls to a table or query tables
     def __getitem__(self, tablename: str):

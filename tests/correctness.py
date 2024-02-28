@@ -24,7 +24,7 @@ class TestCorrectness(unittest.TestCase):
         # self.d.reloadTables()
 
     #%%
-    def test_create_table_and_insert(self):
+    def test_create_table_insert_drop(self):
         fmtspec = sew.FormatSpecifier()
         fmtspec.addColumn('c1', int)
         fmtspec.addColumn('c2', float)
@@ -39,6 +39,9 @@ class TestCorrectness(unittest.TestCase):
         row = tbl[0]
         self.assertEqual(row['c1'], 10)
         self.assertEqual(row['c2'], 20.0)
+
+        self.d.dropTable('tbl')
+        self.assertNotIn("tbl", self.d.tables)
 
 
     #%%
