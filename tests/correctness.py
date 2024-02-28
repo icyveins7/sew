@@ -21,7 +21,25 @@ class TestCorrectness(unittest.TestCase):
             self.fmtspec.generate(),
             "correctness"
         )
-        self.d.reloadTables()
+        # self.d.reloadTables()
+
+    #%%
+    def test_create_table_and_insert(self):
+        fmtspec = sew.FormatSpecifier()
+        fmtspec.addColumn('c1', int)
+        fmtspec.addColumn('c2', float)
+        self.d.createTable(fmtspec.generate(),
+                           'tbl')
+        self.assertIn("tbl", self.d.tables)
+        tbl = self.d['tbl']
+        tbl.insertOne(
+            10, 20.0
+        )
+
+        row = tbl[0]
+        self.assertEqual(row['c1'], 10)
+        self.assertEqual(row['c2'], 20.0)
+
 
     #%%
     def test_formatSpecifier_getter(self):
@@ -104,7 +122,6 @@ class TestCorrectness(unittest.TestCase):
             metaFmtspec.generate(),
             "tbl_metadata"
         )
-        self.d.reloadTables()
 
         # Test creating a data table, make sure it throws if the associated meta table doesn't exist
         metadata = [5, 0.2]
@@ -123,7 +140,6 @@ class TestCorrectness(unittest.TestCase):
             metadata,
             "tbl_metadata"
         )
-        self.d.reloadTables()
 
         # Check the list of data tables associated with this metadata table
         datatables = self.d['tbl_metadata'].getDataTables()

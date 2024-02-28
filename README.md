@@ -57,7 +57,8 @@ As an example, instead of writing the whole statements, you can do the following
 
 ```python
 d.createTable(fmt, "mytablename")
-d.reloadTables() # This refreshes the cache of table names so you can access them like a dictionary (see below!)
+# You can now access this table via dict-like methods like d['mytablename']
+# See below for uses
 ```
 
 ## Format Specifiers
@@ -100,7 +101,6 @@ You can also reference a format specifier from the table; this should be identic
 But for cases where you need a python-parsable object that reflects the table schema:
 
 ```python
-d.reloadTables() # Populates the tables internally so you can reference them like a dictionary
 fmt = d['tbl2'].formatSpecifier
 
 >>> {'cols': [['col1', 'INTEGER'], ['col2', 'REAL']],
@@ -141,6 +141,15 @@ d["mytablename"].insertOne(
     orReplace=True # use a replace instead of insert
 )
 ```
+
+## Hard Refresh of Internal Tables Structure
+
+```python
+d.reloadTables()
+```
+
+This is generally only required to be performed when commits of table changes are made from another source - outside the current interpreter. This will force ```sew``` to re-execute a select statement from ```sqlite_master``` and re-populate the internal tables.
+It is automatically called when first instantiating the ```sew.Database``` object.
 
 ## Other Examples
 

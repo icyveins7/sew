@@ -270,6 +270,9 @@ class CommonMethodMixin(StatementGeneratorMixin):
         populates an internal dictionary with a particular
         table subclass object.
 
+        This only handles TableProxy, MetaTableProxy and ViewProxy.
+        For DataTableProxy, see _parseDataTable().
+
         Parameters
         ----------
         table_name : str
@@ -308,6 +311,60 @@ class CommonMethodMixin(StatementGeneratorMixin):
         return dataToMeta
 
 
+    def _parseDataTable(
+        self, 
+        table_name: str,
+        metatable_name: str
+    ):
+        """
+        Parses a data table by re-instantiating it
+        as a DataTable in the internal structure.
+
+        Assumes it has already been created as a normal TableProxy.
+
+        Parameters
+        ----------
+        table_name : str
+            Name of the data table.
+        metatable_name : str
+            Name of its associated metadata table.
+        """
+        # Recreate the object as a DataTable instead
+        self._tables[table_name] = DataTableProxy(
+            self._tables[table_name]._parent,
+            self._tables[table_name]._tbl,
+            self._tables[table_name]._fmt,
+            metatable_name
+        )
+
+
+    def _parseRelationship(
+        self,
+        tablename: str
+    ):
+        """
+        Parses a table's parent-child relationships
+        i.e. any foreign key relationships.
+
+        Assumes the table is already present in the internal
+        structure via ._parseTable().
+
+        Parameters
+        ----------
+        tablename : str
+            Target tablename.
+        """
+        if not isinstance(self._tables[tablename], ViewProxy):
+            parents = FormatSpecifier.getParents(
+                self._tables[tablename]._fmt)
+            # Append to the relationship dict
+            for parent, child_cols in parents.items():
+                if parent not in self._relations.keys():
+                    self._relations[parent] = list()
+                for child_col in child_cols:
+                    self._relations[parent].append((tablename,
+                                                    child_col))
+
 
     def reloadTables(self):
         '''
@@ -335,24 +392,15 @@ class CommonMethodMixin(StatementGeneratorMixin):
         # Iterate over all the tables to upgrade them to data tables if they exist
         for table in self._tables:
             if table in dataToMeta.keys():
-                self._tables[table] = DataTableProxy(
-                    self._tables[table]._parent,
-                    self._tables[table]._tbl,
-                    self._tables[table]._fmt,
-                    dataToMeta[table] # Attach the metadata table's name
+                self._parseDataTable(
+                    table,
+                    dataToMeta[table]
                 )
 
             # While doing so, check if it has foreign keys
             # But only if its not a view
-            if not isinstance(self._tables[table], ViewProxy):
-                parents = FormatSpecifier.getParents(self._tables[table]._fmt)
-                # Append to the relationship dict
-                for parent, child_cols in parents.items():
-                    if parent not in self._relations.keys():
-                        self._relations[parent] = list()
-                    for child_col in child_cols:
-                        self._relations[parent].append((table, child_col))
-            
+            self._parseRelationship(table)
+           
         return results
         
     def createTable(self, 
@@ -386,6 +434,9 @@ class CommonMethodMixin(StatementGeneratorMixin):
         self.cur.execute(stmt)
         if commitNow:
             self.con.commit()
+
+        # Update the internal structure
+        self._parseTable(tablename, stmt, 'table')
         return stmt
 
     def createMetaTable(self, 
@@ -425,9 +476,13 @@ class CommonMethodMixin(StatementGeneratorMixin):
             raise ValueError("Metadata table %s must contain the column %s" % (tablename, MetaTableProxy.requiredColumn))
 
         # Otherwise, everything else is the same
-        self.cur.execute(self._makeCreateTableStatement(fmt, tablename, ifNotExists, encloseTableName))
+        stmt = self._makeCreateTableStatement(fmt, tablename, ifNotExists, encloseTableName)
+        self.cur.execute(stmt)
         if commitNow:
             self.con.commit()
+
+        # Populate internal structure
+        self._parseTable(tablename, stmt, 'table')
 
     def createDataTable(self, 
                         fmt: dict, 
@@ -481,9 +536,17 @@ class CommonMethodMixin(StatementGeneratorMixin):
         self.cur.execute(metastmt, metadata)
 
         # Otherwise, everything else is the same
-        self.cur.execute(self._makeCreateTableStatement(fmt, tablename, ifNotExists, encloseTableName))
+        stmt = self._makeCreateTableStatement(fmt, tablename, ifNotExists, encloseTableName)
+        self.cur.execute(stmt)
         if commitNow:
             self.con.commit()
+
+        # Create the table internally
+        self._parseTable(tablename, stmt, 'table')
+        # Update it as a special DataTable
+        self._parseDataTable(tablename, metatablename)
+
+
 
             
     def dropTable(self, tablename: str, commitNow: bool=False):
