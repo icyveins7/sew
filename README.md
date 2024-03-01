@@ -1,4 +1,4 @@
-# sew ![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/icyveins7/sew/run-unit-tests.yml)
+# sew ![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/icyveins7/sew/run-unit-tests.yml) ![Github AutoPkg Workflow Status](https://img.shields.io/github/actions/workflow/status/icyveins7/sew/auto-package.yml)
 
 Sqlite Extensions &amp; Wrappers for Python.
 
@@ -15,7 +15,20 @@ A general ethos for this framework is to reduce the developer's code typed; if t
 However, for simple CRUD operations it should be easier to use methods this framework provides!
 
 # Installation
-As this is currently not a wheel, simply clone and then install in editable mode.
+
+## From PyPI
+We are now on PyPI!
+
+```
+pip install s3ew
+```
+
+## From GitHub Releases
+
+Head over to the Releases page and download the latest wheel there.
+
+## From Source
+Simply clone and then install in editable mode.
 
 ```
 git clone https://github.com/icyveins7/sew
