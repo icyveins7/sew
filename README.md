@@ -1,4 +1,4 @@
-# sew ![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/icyveins7/sew/run-unit-tests.yml) ![Github AutoPkg Workflow Status](https://img.shields.io/github/actions/workflow/status/icyveins7/sew/auto-package.yml)
+# sew ![GitHub Workflow Status (with event)](https://github.com/icyveins7/sew/actions/workflows/run-unit-tests.yml/badge.svg) ![Github AutoPkg Workflow Status](https://img.shields.io/github/actions/workflow/status/icyveins7/sew/auto-package.yml)
 
 Sqlite Extensions &amp; Wrappers for Python.
 
