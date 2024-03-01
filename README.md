@@ -23,6 +23,8 @@ We are now on PyPI!
 pip install s3ew
 ```
 
+```sew``` was taken...
+
 ## From GitHub Releases
 
 Head over to the Releases page and download the latest wheel there.
