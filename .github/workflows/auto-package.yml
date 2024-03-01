@@ -2,7 +2,7 @@ name: auto-package
 run-name: ${{ github.actor }} is auto-packaging a wheel
 on: [push]
 jobs:
-  build:
+  auto-package:
     runs-on: ubuntu-latest
     strategy:
       matrix:
