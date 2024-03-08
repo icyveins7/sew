@@ -33,6 +33,19 @@ class SqliteContainer:
 
         if pragma_foreign_keys:
             self.cur.execute("PRAGMA foreign_keys=ON")
+
+    def __enter__(self):
+        '''
+        For use in a with statement.
+        '''
+        return self
+    
+    def __exit__(self, type, value, traceback):
+        '''
+        For use in a with statement.
+        Closes the connection for you, unlike default sqlite3.Connection.
+        '''
+        self.con.close()
         
 #%% Mixin to redirect common sqlite methods for brevity in code later
 class CommonRedirectMixin:

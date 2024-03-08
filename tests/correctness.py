@@ -634,6 +634,23 @@ class TestCorrectness(unittest.TestCase):
         self.assertIs(container.col2, table.columns['col2'])
         self.assertIs(container.col3, table.columns['col3'])
 
+    def test_context_manager(self):
+        # Show that default sqlite3 doesn't close the database
+        with sq.connect(":memory:") as sqdb:
+            sqcur = sqdb.cursor()
+        sqcur.execute("create table x(c1 INT)")
+
+        # Then show that sew database does throw
+        with sew.Database(":memory:") as db:
+            cur = db.con.cursor()
+        # Extracting a cursor manually
+        with self.assertRaises(sq.ProgrammingError):
+            cur.execute('create table x(c1 INT)')
+        # Using our in-built executors
+        with self.assertRaises(sq.ProgrammingError):
+            db.execute('create table x(c1 INT)')
+
+
 
     #%% ==================================== PLUGINS ==================================== #
     def test_numpy_plugin(self):
