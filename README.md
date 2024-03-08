@@ -1,6 +1,6 @@
 # sew ![GitHub Workflow Status (with event)](https://github.com/icyveins7/sew/actions/workflows/run-unit-tests.yml/badge.svg) ![Github AutoPkg Workflow Status](https://github.com/icyveins7/sew/actions/workflows/auto-package.yml/badge.svg)
 
-Sqlite Extensions &amp; Wrappers for Python.
+SQLite Extensions &amp; Wrappers for Python.
 
 Tired of writing create/insert/select statements yourself? Or maybe you'd just like to access your tables with keys like a Pythonic dictionary? Then just subclass this.
 
@@ -62,6 +62,24 @@ Some common commands have shortcuts, if that's all you want to do:
 d.execute() # Same as d.cur.execute
 d.executemany() # Same as d.cur.executemany
 d.commit() # Same as d.con.commit
+```
+
+You also get a context manager for free:
+
+```python
+with sew.Database(":memory:") as db:
+    db.execute("create table tbl(col INTEGER))")
+
+# db connect is now closed i.e. .close() called on db.con
+# further statements to the cursor will result in sqlite3.ProgrammingError
+db.execute("select * from tbl") # ERROR
+
+# This is unlike the default sqlite3 connection which allows this
+with sq.connect(":memory:") as sqcon:
+    sqcur = sqcon.cursor()
+    sqcur.execute("create table tbl(col INTEGER))")
+
+sqcur.execute("select * from tbl") # This is allowed, sqcon is still valid!
 ```
 
 But the main benefit is in shortened requirements for database changes. Docstrings are available for most common methods.
