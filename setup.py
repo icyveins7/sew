@@ -8,6 +8,6 @@ Created on Sun Jan 15 22:52:11 2023
 
 from setuptools import setup, find_packages
 setup(name="sew",
-      version="0.0.3",
+      version="0.0.4",
       packages=find_packages("."))
 
