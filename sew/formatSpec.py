@@ -87,7 +87,34 @@ class FormatSpecifier:
         
     def generate(self):
         return self.fmt
-    
+
+
+    @staticmethod
+    def _parseColumnDesc(desc: str) -> list[str, str]:
+        '''
+        Helper method to parse the section of the CREATE TABLE statement
+        that describes a single column.
+
+        This looks like "col1 TYPENAME" or just "col1".
+
+        Parameters
+        ----------
+        desc : str
+            The column description.
+
+        Returns
+        -------
+        list[str, str]
+            A list of two strings, the column name and the type.
+        '''
+        sdesc = desc.strip().split(" ")
+        if len(sdesc) == 1:
+            return [sdesc[0], ""] # Blank for type
+
+        else:
+            return [sdesc[0], " ".join(sdesc[1:])] # This accounts for INTEGER PRIMARY KEY for e.g.
+
+
     @classmethod
     def fromSql(cls, stmt: str):
         '''

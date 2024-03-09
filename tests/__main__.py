@@ -12,6 +12,10 @@ import unittest
 
 print("Begin tests")
 
+# Import statements unittests
+print("Running statements unittests")
+from.statements import *
+
 # Import correctness unittests
 print("Running correctness unittests")
 from .correctness import *
