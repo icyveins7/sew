@@ -16,6 +16,10 @@ print("Begin tests")
 print("Running correctness unittests")
 from .correctness import *
 
+# Import plugins unittests
+print("Running plugins unittests")
+from .plugins import *
+
 # Import blob unittests
 print("Running blob unittests")
 from .blobs import *
