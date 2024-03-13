@@ -90,7 +90,7 @@ class FormatSpecifier:
 
 
     @staticmethod
-    def _parseColumnDesc(desc: str) -> list[str, str]:
+    def _parseColumnDesc(desc: str) -> list[str, str] | None:
         '''
         Helper method to parse the section of the CREATE TABLE statement
         that describes a single column.
@@ -104,15 +104,81 @@ class FormatSpecifier:
 
         Returns
         -------
-        list[str, str]
+        sdesc : list[str, str] or None
             A list of two strings, the column name and the type.
+            Returns None if an empty string is passed in.
         '''
-        sdesc = desc.strip().split(" ")
+        sdesc = desc.strip()
+        if len(sdesc) == 0: # Empty string
+            return None
+
+        sdesc = sdesc.split(" ")
         if len(sdesc) == 1:
             return [sdesc[0], ""] # Blank for type
 
         else:
             return [sdesc[0], " ".join(sdesc[1:])] # This accounts for INTEGER PRIMARY KEY for e.g.
+
+
+    @staticmethod
+    def _splitColumnsSql(fmtstr: str) -> tuple[list[list[str]], list[str], list[list[str]]]:
+        '''
+        Helper method to split the extracted SQL from the CREATE TABLE statement into
+        3 constituent parts:
+
+        1) Description of the columns
+        2) Description of the conditions on the columns e.g. UNIQUE
+        3) FOREIGN KEY constraints
+
+
+        Parameters
+        ----------
+        fmtstr : str
+            The extracted SQL from the CREATE TABLE statement.
+            This should be everything in the outermost brackets following the table name.
+
+        Returns
+        -------
+        cols : list[list[str]]
+            List of list of strings, with each inner list being returned from ._parseColumnDesc().
+
+        conds : list[str]
+            List of strings, with each one specifying an extra condition.
+            Example: UNIQUE(col1, col2).
+
+        foreign_keys :  list[list[str]]
+            List of list of strings, with each inner list representing the
+            child, parent relationship.
+            Example: ["col_child", "parent_table(col_parent)"]
+        '''
+
+        # Remove any uniques
+        uniques = re.finditer(r"UNIQUE\(.+?\)", fmtstr, flags=re.IGNORECASE) # Non-greedy regex
+        conds = []
+        for unique in uniques:
+            fmtstr = fmtstr.replace(unique.group(), "") # Drop the substring
+            conds.append(unique.group())
+        
+        # Remove any foreign keys
+        foreignkeys = re.finditer(r"FOREIGN KEY(.+?) REFERENCES (.+?)\)", fmtstr, flags=re.IGNORECASE)
+        foreign_keys = []
+        for foreign in foreignkeys:
+            fmtstr = fmtstr.replace(foreign.group(), "") # Drop the substring
+            # Get the child column name by searching the first brackets
+            childCol = re.search(r"\(.+?\)", foreign.group(), flags=re.IGNORECASE).group()[1:-1]
+            # Get the parent table/column name by taking everything after REFERENCES
+            parentColStart = re.search(r"REFERENCES ", foreign.group(), flags=re.IGNORECASE).span()[1]
+            parentCol = foreign.group()[parentColStart:]
+            foreign_keys.append([childCol, parentCol])
+
+        # Now parse each remaining column description
+        cols = [
+            sdesc
+            for i in fmtstr.split(",") # Just split by the commas, these should be the only ones left
+            if (sdesc := FormatSpecifier._parseColumnDesc(i)) is not None
+        ]
+
+        return cols, conds, foreign_keys
 
 
     @classmethod

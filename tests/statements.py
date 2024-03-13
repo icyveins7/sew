@@ -37,7 +37,47 @@ class TestStatements(unittest.TestCase):
         )
 
 
+    # Test the create table splitter
+    def test_table_sql_splitter(self):
+        # Make something simple
+        desc = ' col1 INTEGER, col2, col3 real  ' # With some blanks
+        cols, conds, fks = sew.FormatSpecifier._splitColumnsSql(desc)
+        self.assertEqual(
+            cols,
+            [
+                ["col1", "INTEGER"],
+                ["col2", ""],
+                ["col3", "real"]
+            ]
+        )
+        self.assertEqual(
+            conds,
+            []
+        )
+        self.assertEqual(
+            fks,
+            []
+        )
 
+        # Make something with some uniques
+        desc = ' col1 INTEGER, col2, col3 real, UNIQUE(col1, col2)  '
+        cols, conds, fks = sew.FormatSpecifier._splitColumnsSql(desc)
+        self.assertEqual(
+            cols,
+            [
+                ["col1", "INTEGER"],
+                ["col2", ""],
+                ["col3", "real"]
+            ]
+        )
+        self.assertEqual(
+            conds,
+            ["UNIQUE(col1, col2)"]
+        )
+        self.assertEqual(
+            fks,
+            []
+        )
 
 
 
