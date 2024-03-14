@@ -90,7 +90,7 @@ class FormatSpecifier:
 
 
     @staticmethod
-    def _parseColumnDesc(desc: str) -> list[str, str] | None:
+    def _parseColumnDesc(desc: str) -> list[str, str]:
         '''
         Helper method to parse the section of the CREATE TABLE statement
         that describes a single column.
