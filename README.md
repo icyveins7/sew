@@ -16,6 +16,8 @@ However, for simple CRUD operations it should be easier to use methods this fram
 
 # Installation
 
+```sew``` currently requires Python 3.9+, mainly because of my use of type-hints. That said, if there is a lot of demand for support for Python 3.8 and earlier, I can port a version when the time comes.
+
 ## From PyPI
 We are now on PyPI!
 
