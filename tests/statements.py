@@ -79,6 +79,28 @@ class TestStatements(unittest.TestCase):
             []
         )
 
+        # Make something with uniques and foreign keys
+        desc ='col1 INTEGER, col2, col3 real, UNIQUE(col1, col2), FOREIGN KEY(col1) REFERENCES parent_table(parentcolA)  '
+        cols, conds, fks = sew.FormatSpecifier._splitColumnsSql(desc)
+        self.assertEqual(
+            cols,
+            [
+                ["col1", "INTEGER"],
+                ["col2", ""],
+                ["col3", "real"]
+            ]
+        )
+        self.assertEqual(
+            conds,
+            ["UNIQUE(col1, col2)"]
+        )
+        self.assertEqual(
+            fks,
+            [
+                ["col1", "parent_table(parentcolA)"]
+            ]
+        )
+
 
 
 
