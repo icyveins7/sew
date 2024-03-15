@@ -61,6 +61,18 @@ class ColumnProxy:
         self._requireType(x)
         return "%s != %s" % (self._name, str(x))
 
+#%%
+class ColumnProxyContainer:
+    """
+    Container of ColumnProxy objects, useful to access each ColumnProxy by name
+    as an attribute.
+
+    This makes the code easier to type as opposed to a dictionary; e.g.
+    mytable.cols.mycolname
+    """
+    def __init__(self, columnProxies: list[ColumnProxy]):
+        for col in columnProxies:
+            setattr(self, col.name, col)
 
 
 

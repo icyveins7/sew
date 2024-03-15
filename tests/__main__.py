@@ -14,7 +14,11 @@ print("Begin tests")
 
 # Import statements unittests
 print("Running statements unittests")
-from.statements import *
+from .statements import *
+
+# Import columns unittests
+print("Running columns unittests")
+from .columns import *
 
 # Import correctness unittests
 print("Running correctness unittests")

@@ -678,6 +678,13 @@ class TableProxy(StatementGeneratorMixin):
         return self._fmt
 
     @property
+    def cols(self):
+        '''
+        Alias for .columns.
+        '''
+        return self._cols
+
+    @property
     def columns(self):
         '''
         Dictionary of ColumnProxy objects based on the table columns.
