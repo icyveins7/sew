@@ -9,6 +9,7 @@ import sqlite3 as sq
 import re
 
 from .formatSpec import FormatSpecifier
+from .column import ColumnProxy
 
 #%% Basic container, the most barebones
 class SqliteContainer:
@@ -631,21 +632,21 @@ class TableProxy(StatementGeneratorMixin):
             colname = col[0]
             # Parse the type (note that we cannot determine the upper/lowercase)
             if re.match(r"int", col[1], flags=re.IGNORECASE): # All the versions have the substring 'int', so this works
-                cols[colname] = ColumnProxy(colname, int)
+                cols[colname] = ColumnProxy(colname, int, self._tbl)
             elif re.match(r"text", col[1], flags=re.IGNORECASE) or re.match(r"char", col[1], flags=re.IGNORECASE):
-                cols[colname] = ColumnProxy(colname, str)
+                cols[colname] = ColumnProxy(colname, str, self._tbl)
             elif re.match(r"real", col[1], flags=re.IGNORECASE) or re.match(r"double", col[1], flags=re.IGNORECASE) or re.match(r"float", col[1], flags=re.IGNORECASE):
-                cols[colname] = ColumnProxy(colname, float)
+                cols[colname] = ColumnProxy(colname, float, self._tbl)
             elif re.match(r"blob", col[1], flags=re.IGNORECASE):
-                cols[colname] = ColumnProxy(colname, bytes)
+                cols[colname] = ColumnProxy(colname, bytes, self._tbl)
             elif re.match(r"numeric", col[1], flags=re.IGNORECASE):
-                cols[colname] = ColumnProxy(colname, (int, float))
+                cols[colname] = ColumnProxy(colname, (int, float), self._tbl)
             else:
                 # cols[colname] = ColumnProxy(colname, object)
                 raise NotImplementedError("Unknown parse for sql type %s" % col[1])
-            
+
         return cols
-    
+
 
     def __getitem__(self, i: slice):
         # For now, we don't have a built-in generator for limits and offsets
@@ -675,21 +676,21 @@ class TableProxy(StatementGeneratorMixin):
         Should effectively match the format specifier used during creation.
         '''
         return self._fmt
-    
+
     @property
     def columns(self):
         '''
         Dictionary of ColumnProxy objects based on the table columns.
         '''
         return self._cols
-    
+
     @property
     def columnNames(self):
         '''
         List of column names of the current table.
         '''
         return list(self._cols.keys())
- 
+
     ### These are the actual user methods
     def select(self,
                columnNames: list,
@@ -708,7 +709,7 @@ class TableProxy(StatementGeneratorMixin):
                 ["col1", "col3"]
                 "*"
                 "justThisColumn"
-                
+
         conditions : list, optional
             The filter conditions placed after "where".
             A single condition may be specified as a string.
@@ -716,7 +717,7 @@ class TableProxy(StatementGeneratorMixin):
             Examples:
                 ["col1 < 10", "col2 = 5"]
                 "justThisColumn >= 8"
-                
+
         orderBy : list, optional
             The ordering conditions placed after "order by".
             A single condition may be specified as a string.
@@ -735,7 +736,7 @@ class TableProxy(StatementGeneratorMixin):
         stmt : str
             The actual sqlite statement that was executed.
         '''
-        
+
         stmt = self._makeSelectStatement(
             columnNames,
             self._tbl,
@@ -745,7 +746,7 @@ class TableProxy(StatementGeneratorMixin):
         )
         self._parent.cur.execute(stmt)
         return stmt
-    
+
     def delete(self, 
         conditions:list, 
         commitNow: bool=False, 
@@ -1192,52 +1193,6 @@ class DataTableProxy(TableProxy):
         '''
         # We access the metadata table through the parent container
         return self._parent[self._metadatatable].getMetadataFor(self._tbl)
-    
-        
-
-#%% And also a class for columns
-### TODO: Intention for this is to build it into a way to automatically generate conditions in select statements..
-class ColumnProxy:
-    def __init__(self, name: str, typehint: type):
-        self.name = name
-        self.typehint = typehint
-        
-    def _requireType(self, x):
-        if not isinstance(x, self.typehint):
-            raise TypeError("Compared value must be of type %s" % str(self.typehint))
-        
-    def __lt__(self, x):
-        self._requireType(x)
-        return "%s < %s" % (self.name, str(x))
-
-    def __le__(self, x):
-        self._requireType(x)
-        return "%s <= %s" % (self.name, str(x))
-    
-    def __gt__(self, x):
-        self._requireType(x)
-        return "%s > %s" % (self.name, str(x))
-
-    def __ge__(self, x):
-        self._requireType(x)
-        return "%s >= %s" % (self.name, str(x))
-    
-    def __eq__(self, x):
-        self._requireType(x)
-        return "%s = %s" % (self.name, str(x))
-    
-    def __ne__(self, x):
-        self._requireType(x)
-        return "%s != %s" % (self.name, str(x))
-
-
-class ColumnProxyContainer:
-    def __init__(self, cols: dict[ColumnProxy]):
-        self._cols = cols
-        # Write a setattr for each column name
-        for colProxy in self._cols:
-            setattr(self, colProxy, self._cols[colProxy])
-
 
 
 #%% Inherited class of all the above
