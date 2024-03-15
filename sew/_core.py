@@ -583,7 +583,7 @@ class CommonMethodMixin(StatementGeneratorMixin):
         self._tables.pop(tablename) # TODO: handle meta/data table complications?
     
     ### These are useful methods to direct calls to a table or query tables
-    def __getitem__(self, tablename: str):
+    def __getitem__(self, tablename: str) -> TableProxy:
         return self._tables[tablename]
             
     @property
