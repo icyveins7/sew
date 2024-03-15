@@ -9,7 +9,7 @@ import sqlite3 as sq
 import re
 
 from .formatSpec import FormatSpecifier
-from .column import ColumnProxy
+from .column import ColumnProxy, ColumnProxyContainer
 
 #%% Basic container, the most barebones
 class SqliteContainer:

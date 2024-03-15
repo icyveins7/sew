@@ -33,33 +33,37 @@ class ColumnProxy:
     def __str__(self):
         return "%s %s" % (self._name, self._typehint)
 
-    def _requireType(self, x):
-        if not isinstance(x, self.typehint):
-            raise TypeError("Compared value must be of type %s" % str(self.typehint))
+    def _requireColumnProxy(self, x):
+        if not isinstance(x, self.__class__):
+            raise TypeError("Comparisons are only allowed between ColumnProxy objects.")
+
+    # def _requireType(self, x):
+    #     if not isinstance(x, self.typehint):
+    #         raise TypeError("Compared value must be of type %s" % str(self.typehint))
 
     def __lt__(self, x):
-        self._requireType(x)
-        return "%s < %s" % (self._name, str(x))
+        self._requireColumnProxy(x)
+        return "%s < %s" % (self._name, x.name)
 
     def __le__(self, x):
-        self._requireType(x)
-        return "%s <= %s" % (self._name, str(x))
+        self._requireColumnProxy(x)
+        return "%s <= %s" % (self._name, x.name)
 
     def __gt__(self, x):
-        self._requireType(x)
-        return "%s > %s" % (self._name, str(x))
+        self._requireColumnProxy(x)
+        return "%s > %s" % (self._name, x.name)
 
     def __ge__(self, x):
-        self._requireType(x)
-        return "%s >= %s" % (self._name, str(x))
+        self._requireColumnProxy(x)
+        return "%s >= %s" % (self._name, x.name)
 
     def __eq__(self, x):
-        self._requireType(x)
-        return "%s = %s" % (self._name, str(x))
+        self._requireColumnProxy(x)
+        return "%s = %s" % (self._name, x.name)
 
     def __ne__(self, x):
-        self._requireType(x)
-        return "%s != %s" % (self._name, str(x))
+        self._requireColumnProxy(x)
+        return "%s != %s" % (self._name, x.name)
 
 #%%
 class ColumnProxyContainer:
@@ -71,7 +75,12 @@ class ColumnProxyContainer:
     mytable.cols.mycolname
     """
     def __init__(self, columnProxies: list[ColumnProxy]):
+        lastTablename = None
         for col in columnProxies:
+            if lastTablename is not None and lastTablename != col.tablename:
+                raise ValueError("ColumnProxyContainer can only contain columns from the same table.")
+            lastTablename = col.tablename
+            # Here is where we set the attribute directly
             setattr(self, col.name, col)
 
 
