@@ -101,6 +101,38 @@ class TestStatements(unittest.TestCase):
             ]
         )
 
+        # Use all components more than once, with spaces and newlines as well
+        desc = """
+            col1 INTEGER,
+            col2,
+            col3 real,
+            col4,
+            UNIQUE(col1, col2),
+            UNIQUE(col3, col4),
+            FOREIGN KEY(col1) REFERENCES parent_table(parentcolA),
+            FOREIGN KEY(col3) REFERENCES parent_table(parentcolB)
+        """
+        cols, conds, fks = sew.FormatSpecifier._splitColumnsSql(desc)
+        self.assertEqual(
+            cols,
+            [
+                ["col1", "INTEGER"],
+                ["col2", ""],
+                ["col3", "real"],
+                ["col4", ""]
+            ]
+        )
+        self.assertEqual(
+            conds,
+            ["UNIQUE(col1, col2)", "UNIQUE(col3, col4)"]
+        )
+        self.assertEqual(
+            fks,
+            [
+                ["col1", "parent_table(parentcolA)"],
+                ["col3", "parent_table(parentcolB)"]
+            ]
+        )
 
 
 

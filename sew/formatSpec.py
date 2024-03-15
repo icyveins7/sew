@@ -198,37 +198,6 @@ class FormatSpecifier:
         cols, conds, foreign_keys = FormatSpecifier._splitColumnsSql(fmtstr)
         return cls(cols, conds, foreign_keys)
 
-        # # Remove any uniques
-        # uniques = re.finditer(r"UNIQUE\(.+?\)", fmtstr, flags=re.IGNORECASE) # Non-greedy regex
-        # conds = []
-        # for unique in uniques:
-        #     fmtstr = fmtstr.replace(unique.group(), "") # Drop the substring
-        #     conds.append(unique.group())
-        # 
-        # # Remove any foreign keys
-        # foreignkeys = re.finditer(r"FOREIGN KEY(.+?) REFERENCES (.+?)\)", fmtstr, flags=re.IGNORECASE)
-        # foreign_keys = []
-        # for foreign in foreignkeys:
-        #     fmtstr = fmtstr.replace(foreign.group(), "") # Drop the substring
-        #     # Get the child column name by searching the first brackets
-        #     childCol = re.search(r"\(.+?\)", foreign.group(), flags=re.IGNORECASE).group()[1:-1]
-        #     # Get the parent table/column name by taking everything after REFERENCES
-        #     parentColStart = re.search(r"REFERENCES ", foreign.group(), flags=re.IGNORECASE).span()[1]
-        #     parentCol = foreign.group()[parentColStart:]
-        #     foreign_keys.append([childCol, parentCol])
-        #
-        # # There are some problems with the old way of getting the columns
-        # # To be safe, we use another regex that extracts based on the expected types
-        # cols = re.finditer(
-        #     r"(\w+)\s(%s)" % "|".join(cls.keywordTypes), fmtstr, flags=re.IGNORECASE
-        # )
-        # cols = [i.group().split() for i in cols]
-        #
-        # # Note, due to pythonic default arguments only evaluating at definition time,
-        # # we must take extra care to input all __init__ arguments here! Or else the default argument
-        # # will 'remember' the previous value.
-        # return cls(cols, conds, foreign_keys)
-
 
     @staticmethod
     def dictContainsColumn(fmt: dict, colname: str):
