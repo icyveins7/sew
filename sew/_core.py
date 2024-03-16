@@ -244,12 +244,12 @@ class StatementGeneratorMixin:
             StatementGeneratorMixin._makeQuestionMarks(len(insertedColumns))
         )
         return stmt
-    
+
     @staticmethod
     def _makeDropStatement(tablename: str):
         stmt = "drop table %s" % tablename
         return stmt
-    
+
     @staticmethod
     def _makeDeleteStatement(
         tablename: str, conditions: list=None, encloseTableName: bool=True):
@@ -258,365 +258,8 @@ class StatementGeneratorMixin:
             StatementGeneratorMixin._stitchConditions(conditions)
         )
         return stmt
-    
-#%% We will not assume the CommonRedirectMixins here
-class CommonMethodMixin(StatementGeneratorMixin):
-    def __init__(self, *args, **kwargs):
-        '''
-        Includes common methods to create and drop tables, and provides
-        dictionary-like access to all tables currently in the database.
-        Also includes internal methods for statement generation.
-        '''
-        super().__init__(*args, **kwargs)
-        
-        self._tables = dict()
-        self._relations = dict() # Establish in-memory parent->child mappings
-        self.reloadTables()
-
-    def _parseTable(
-        self,
-        table_name: str,
-        table_sql: str,
-        table_type: str
-    ) -> dict:
-        """
-        Parses the parameters of a table and appropriately
-        populates an internal dictionary with a particular
-        table subclass object.
-
-        This only handles TableProxy, MetaTableProxy and ViewProxy.
-        For DataTableProxy, see _parseDataTable().
-
-        Parameters
-        ----------
-        table_name : str
-            Table name.
-        table_sql : str
-            SQLite statement used in generation of the table.
-        table_type : str
-            Table type, either 'table' or 'view'.
-
-        Returns
-        -------
-        dataToMeta: dict
-            An additional dictionary containing a lookup from
-            DataTable: key -> MetaTable: value. Formed from querying
-            the MetaTable object.
-        """
-        dataToMeta = dict()
-        # Special case for view
-        if table_type == 'view':
-            self._tables[table_name] = ViewProxy(self, table_name)
-
-        # Special cases for metadata tables
-        elif table_name.endswith(MetaTableProxy.requiredTableSuffix):
-            self._tables[table_name] = MetaTableProxy(
-                self, table_name, 
-                FormatSpecifier.fromSql(table_sql).generate())
-            # We also retrieve all associated data table names
-            assocDataTables = self._tables[table_name].getDataTables()
-            for dt in assocDataTables:
-                dataToMeta[dt] = table_name
-        else:
-            self._tables[table_name] = TableProxy(
-                self, table_name, 
-                FormatSpecifier.fromSql(table_sql).generate())
-
-        return dataToMeta
 
 
-    def _parseDataTable(
-        self, 
-        table_name: str,
-        metatable_name: str
-    ):
-        """
-        Parses a data table by re-instantiating it
-        as a DataTable in the internal structure.
-
-        Assumes it has already been created as a normal TableProxy.
-
-        Parameters
-        ----------
-        table_name : str
-            Name of the data table.
-        metatable_name : str
-            Name of its associated metadata table.
-        """
-        # Recreate the object as a DataTable instead
-        self._tables[table_name] = DataTableProxy(
-            self._tables[table_name]._parent,
-            self._tables[table_name]._tbl,
-            self._tables[table_name]._fmt,
-            metatable_name
-        )
-
-
-    def _parseRelationship(
-        self,
-        tablename: str
-    ):
-        """
-        Parses a table's parent-child relationships
-        i.e. any foreign key relationships.
-
-        Assumes the table is already present in the internal
-        structure via ._parseTable().
-
-        Parameters
-        ----------
-        tablename : str
-            Target tablename.
-        """
-        if not isinstance(self._tables[tablename], ViewProxy):
-            parents = FormatSpecifier.getParents(
-                self._tables[tablename]._fmt)
-            # Append to the relationship dict
-            for parent, child_cols in parents.items():
-                if parent not in self._relations.keys():
-                    self._relations[parent] = list()
-                for child_col in child_cols:
-                    self._relations[parent].append((tablename,
-                                                    child_col))
-
-
-    def reloadTables(self):
-        '''
-        Loads and parses the details of all tables from sqlite_master.
-        
-        Returns
-        -------
-        results : 
-            Sqlite results from fetchall(). This is usually used for debugging.
-        '''
-        stmt = self._makeSelectStatement(["name","sql","type"], "sqlite_master",
-                                         conditions=["type='table' or type='view'"])
-        self.cur.execute(stmt)
-        results = self.cur.fetchall()
-        self._tables.clear()
-
-        dataToMeta = dict()
-        for result in results:
-            newDtm = self._parseTable(
-                result['name'], result['sql'], result['type']
-            )
-            # Merge into dataToMeta
-            dataToMeta.update(newDtm)
-
-        # Iterate over all the tables to upgrade them to data tables if they exist
-        for table in self._tables:
-            if table in dataToMeta.keys():
-                self._parseDataTable(
-                    table,
-                    dataToMeta[table]
-                )
-
-            # While doing so, check if it has foreign keys
-            # But only if its not a view
-            self._parseRelationship(table)
-           
-        return results
-        
-    def createTable(self, 
-                    fmt: dict, 
-                    tablename: str, 
-                    ifNotExists: bool=False, 
-                    encloseTableName: bool=True, 
-                    commitNow: bool=False):
-        '''
-        Creates a new table.
-
-        Parameters
-        ----------
-        fmt : dict
-            Dictionary of column names/types and special conditions that characterises the table.
-            The easiest way to generate this is to instantiate a FormatSpecifier object and then use
-            generate() to create this.
-        tablename : str
-            The table name.
-        ifNotExists : bool, optional
-            Prevents creation if the table already exists. The default is False.
-        encloseTableName : bool, optional
-            Encloses the table name in quotes to allow for certain table names which may fail;
-            for example, this is necessary if the table name starts with digits.
-            The default is True.
-        commitNow : bool, optional
-            Calls commit on the database connection after the transaction if True. 
-            The default is False.
-        '''
-        stmt = self._makeCreateTableStatement(fmt, tablename, ifNotExists, encloseTableName)
-        self.cur.execute(stmt)
-        if commitNow:
-            self.con.commit()
-
-        # Update the internal structure
-        self._parseTable(tablename, stmt, 'table')
-        return stmt
-
-    def createMetaTable(self, 
-                        fmt: dict, 
-                        tablename: str, 
-                        ifNotExists: bool=False, 
-                        encloseTableName: bool=True, 
-                        commitNow: bool=False):
-        '''
-        Creates a new meta table.
-
-        Parameters
-        ----------
-        fmt : dict
-            Dictionary of column names/types and special conditions that characterises the table.
-            The easiest way to generate this is to instantiate a FormatSpecifier object and then use
-            generate() to create this.
-            Metadata tables are expected to have the first column designated as 'data_tblname TEXT'.
-        tablename : str
-            The table name.
-        ifNotExists : bool, optional
-            Prevents creation if the table already exists. The default is False.
-        encloseTableName : bool, optional
-            Encloses the table name in quotes to allow for certain table names which may fail;
-            for example, this is necessary if the table name starts with digits.
-            The default is True.
-        commitNow : bool, optional
-            Calls commit on the database connection after the transaction if True. 
-            The default is False.
-        '''
-
-        # Check if the format and table names are valid
-        if not tablename.endswith(MetaTableProxy.requiredTableSuffix):
-            raise ValueError("Metadata table %s must end with %s" % (tablename, MetaTableProxy.requiredTableSuffix))
-
-        if not FormatSpecifier.dictContainsColumn(fmt, MetaTableProxy.requiredColumn):
-            raise ValueError("Metadata table %s must contain the column %s" % (tablename, MetaTableProxy.requiredColumn))
-
-        # Otherwise, everything else is the same
-        stmt = self._makeCreateTableStatement(fmt, tablename, ifNotExists, encloseTableName)
-        self.cur.execute(stmt)
-        if commitNow:
-            self.con.commit()
-
-        # Populate internal structure
-        self._parseTable(tablename, stmt, 'table')
-
-    def createDataTable(self, 
-                        fmt: dict, 
-                        tablename: str, 
-                        metadata: list, 
-                        metatablename: str,
-                        metaOrReplace: bool=False,
-                        ifNotExists: bool=False, 
-                        encloseTableName: bool=True, 
-                        commitNow: bool=False):
-        '''
-        Creates a new data table. This table will be intrinsically linked to a row in the associated metadata table.
-
-        Parameters
-        ----------
-        fmt : dict
-            Dictionary of column names/types and special conditions that characterises the table.
-            The easiest way to generate this is to instantiate a FormatSpecifier object and then use
-            generate() to create this.
-        tablename : str
-            The table name.
-        metadata : list
-            The metadata to insert into the metadata table associated with this data table.
-        metatablename : str
-            The metadata table name.
-        metaOrReplace : bool, optional
-            Whether to use orReplace when inserting into the metadata table.
-            Useful when the metadata table has UNIQUE constraints.
-        ifNotExists : bool, optional
-            Prevents creation if the table already exists. The default is False.
-        encloseTableName : bool, optional
-            Encloses the table name in quotes to allow for certain table names which may fail;
-            for example, this is necessary if the table name starts with digits.
-            The default is True.
-        commitNow : bool, optional
-            Calls commit on the database connection after the transaction if True. 
-            The default is False.
-        '''
-
-        # Check if the meta table exists
-        if not metatablename in self._tables.keys():
-            raise ValueError("Metadata table %s does not exist!" % metatablename)
-
-        # Insert the associated metadata into the metadata table
-        metastmt = self._makeInsertStatement(
-            metatablename,
-            self._tables[metatablename]._fmt,
-            orReplace=metaOrReplace,
-            encloseTableName=encloseTableName)
-        metadata.insert(0, tablename) # The first argument is the name of the data table
-        self.cur.execute(metastmt, metadata)
-
-        # Otherwise, everything else is the same
-        stmt = self._makeCreateTableStatement(fmt, tablename, ifNotExists, encloseTableName)
-        self.cur.execute(stmt)
-        if commitNow:
-            self.con.commit()
-
-        # Create the table internally
-        self._parseTable(tablename, stmt, 'table')
-        # Update it as a special DataTable
-        self._parseDataTable(tablename, metatablename)
-
-
-
-            
-    def dropTable(self, tablename: str, commitNow: bool=False):
-        '''
-        Drops a table.
-
-        Parameters
-        ----------
-        tablename : str
-            The table name.
-        commitNow : bool, optional
-            Calls commit on the database connection after the transaction if True. 
-            The default is False.
-        '''
-        self.cur.execute(self._makeDropStatement(tablename))
-        if commitNow:
-            self.con.commit()
-
-        # Remove from internal structure
-        self._tables.pop(tablename) # TODO: handle meta/data table complications?
-    
-    ### These are useful methods to direct calls to a table or query tables
-    def __getitem__(self, tablename: str) -> TableProxy:
-        return self._tables[tablename]
-            
-    @property
-    def relationships(self):
-        """
-        Returns a dictionary of parent (key) to child (value) relationships.
-        Each key is a 2-tuple of the form tablename,columnname.
-        Values are returned as a list of 2-tuples, as multiple children may
-        point to the same parent, even from within the same child table.
-
-        Returns
-        -------
-        dict
-            Parent to child relationship dictionary.
-        """
-        return self._relations
-
-    @property
-    def tablenames(self):
-        '''
-        List of names of current tables in the database.
-        You may need to call reloadTables() if something is missing.
-        '''
-        return list(self._tables.keys())
-    
-    @property
-    def tables(self):
-        '''
-        Dictionary of TableProxy objects that can be used individually to do table-specific actions.
-        You may need to call reloadTables() if something is missing.
-        '''
-        return self._tables
-    
 #%% Akin to configparser, we create a class for tables
 class TableProxy(StatementGeneratorMixin):
     def __init__(self, parent: SqliteContainer, tbl: str, fmt: dict):
@@ -624,7 +267,7 @@ class TableProxy(StatementGeneratorMixin):
         self._tbl = tbl # The tablename
         self._fmt = fmt
         self._cols = self._populateColumns()
-        
+
     def _populateColumns(self):
         cols = dict()
         # typehints = 
@@ -973,7 +616,7 @@ class TableProxy(StatementGeneratorMixin):
             self._parent.con.commit()
 
         return stmt
-    
+
     def createView(
         self,
         columnNames: list,
@@ -1009,7 +652,7 @@ class TableProxy(StatementGeneratorMixin):
         commitNow : bool, optional
             Calls commit on the database connection after the transaction if True.
             The default is False.
-        
+
         Returns
         -------
         stmt : str
@@ -1040,7 +683,7 @@ class TableProxy(StatementGeneratorMixin):
             self._parent.con.commit()
 
         return stmt
-    
+
     ### Foreign-key specific methods
     def retrieveParentRow(self, row: sq.Row, foreignKey: str=None):
         """
@@ -1077,7 +720,7 @@ class TableProxy(StatementGeneratorMixin):
                 raise KeyError(
                     f"The foreign key {foreignKey} does not exist in the table {self._tbl}"
                 )
-            
+
         # Extract the child column
         child_col = fk[0]
 
@@ -1090,6 +733,368 @@ class TableProxy(StatementGeneratorMixin):
         # Now perform a select on the parent table
         stmt = self._parent[parent_table].select("*", ["%s=%s" % (parent_col, str(row[child_col]))])
         return stmt
+
+
+
+
+#%% We will not assume the CommonRedirectMixins here
+class CommonMethodMixin(StatementGeneratorMixin):
+    def __init__(self, *args, **kwargs):
+        '''
+        Includes common methods to create and drop tables, and provides
+        dictionary-like access to all tables currently in the database.
+        Also includes internal methods for statement generation.
+        '''
+        super().__init__(*args, **kwargs)
+
+        self._tables = dict()
+        self._relations = dict() # Establish in-memory parent->child mappings
+        self.reloadTables()
+
+    def _parseTable(
+        self,
+        table_name: str,
+        table_sql: str,
+        table_type: str
+    ) -> dict:
+        """
+        Parses the parameters of a table and appropriately
+        populates an internal dictionary with a particular
+        table subclass object.
+
+        This only handles TableProxy, MetaTableProxy and ViewProxy.
+        For DataTableProxy, see _parseDataTable().
+
+        Parameters
+        ----------
+        table_name : str
+            Table name.
+        table_sql : str
+            SQLite statement used in generation of the table.
+        table_type : str
+            Table type, either 'table' or 'view'.
+
+        Returns
+        -------
+        dataToMeta: dict
+            An additional dictionary containing a lookup from
+            DataTable: key -> MetaTable: value. Formed from querying
+            the MetaTable object.
+        """
+        dataToMeta = dict()
+        # Special case for view
+        if table_type == 'view':
+            self._tables[table_name] = ViewProxy(self, table_name)
+
+        # Special cases for metadata tables
+        elif table_name.endswith(MetaTableProxy.requiredTableSuffix):
+            self._tables[table_name] = MetaTableProxy(
+                self, table_name, 
+                FormatSpecifier.fromSql(table_sql).generate())
+            # We also retrieve all associated data table names
+            assocDataTables = self._tables[table_name].getDataTables()
+            for dt in assocDataTables:
+                dataToMeta[dt] = table_name
+        else:
+            self._tables[table_name] = TableProxy(
+                self, table_name, 
+                FormatSpecifier.fromSql(table_sql).generate())
+
+        return dataToMeta
+
+
+    def _parseDataTable(
+        self, 
+        table_name: str,
+        metatable_name: str
+    ):
+        """
+        Parses a data table by re-instantiating it
+        as a DataTable in the internal structure.
+
+        Assumes it has already been created as a normal TableProxy.
+
+        Parameters
+        ----------
+        table_name : str
+            Name of the data table.
+        metatable_name : str
+            Name of its associated metadata table.
+        """
+        # Recreate the object as a DataTable instead
+        self._tables[table_name] = DataTableProxy(
+            self._tables[table_name]._parent,
+            self._tables[table_name]._tbl,
+            self._tables[table_name]._fmt,
+            metatable_name
+        )
+
+
+    def _parseRelationship(
+        self,
+        tablename: str
+    ):
+        """
+        Parses a table's parent-child relationships
+        i.e. any foreign key relationships.
+
+        Assumes the table is already present in the internal
+        structure via ._parseTable().
+
+        Parameters
+        ----------
+        tablename : str
+            Target tablename.
+        """
+        if not isinstance(self._tables[tablename], ViewProxy):
+            parents = FormatSpecifier.getParents(
+                self._tables[tablename]._fmt)
+            # Append to the relationship dict
+            for parent, child_cols in parents.items():
+                if parent not in self._relations.keys():
+                    self._relations[parent] = list()
+                for child_col in child_cols:
+                    self._relations[parent].append((tablename,
+                                                    child_col))
+
+
+    def reloadTables(self):
+        '''
+        Loads and parses the details of all tables from sqlite_master.
+        
+        Returns
+        -------
+        results : 
+            Sqlite results from fetchall(). This is usually used for debugging.
+        '''
+        stmt = self._makeSelectStatement(["name","sql","type"], "sqlite_master",
+                                         conditions=["type='table' or type='view'"])
+        self.cur.execute(stmt)
+        results = self.cur.fetchall()
+        self._tables.clear()
+
+        dataToMeta = dict()
+        for result in results:
+            newDtm = self._parseTable(
+                result['name'], result['sql'], result['type']
+            )
+            # Merge into dataToMeta
+            dataToMeta.update(newDtm)
+
+        # Iterate over all the tables to upgrade them to data tables if they exist
+        for table in self._tables:
+            if table in dataToMeta.keys():
+                self._parseDataTable(
+                    table,
+                    dataToMeta[table]
+                )
+
+            # While doing so, check if it has foreign keys
+            # But only if its not a view
+            self._parseRelationship(table)
+           
+        return results
+        
+    def createTable(self, 
+                    fmt: dict, 
+                    tablename: str, 
+                    ifNotExists: bool=False, 
+                    encloseTableName: bool=True, 
+                    commitNow: bool=False):
+        '''
+        Creates a new table.
+
+        Parameters
+        ----------
+        fmt : dict
+            Dictionary of column names/types and special conditions that characterises the table.
+            The easiest way to generate this is to instantiate a FormatSpecifier object and then use
+            generate() to create this.
+        tablename : str
+            The table name.
+        ifNotExists : bool, optional
+            Prevents creation if the table already exists. The default is False.
+        encloseTableName : bool, optional
+            Encloses the table name in quotes to allow for certain table names which may fail;
+            for example, this is necessary if the table name starts with digits.
+            The default is True.
+        commitNow : bool, optional
+            Calls commit on the database connection after the transaction if True. 
+            The default is False.
+        '''
+        stmt = self._makeCreateTableStatement(fmt, tablename, ifNotExists, encloseTableName)
+        self.cur.execute(stmt)
+        if commitNow:
+            self.con.commit()
+
+        # Update the internal structure
+        self._parseTable(tablename, stmt, 'table')
+        return stmt
+
+    def createMetaTable(self, 
+                        fmt: dict, 
+                        tablename: str, 
+                        ifNotExists: bool=False, 
+                        encloseTableName: bool=True, 
+                        commitNow: bool=False):
+        '''
+        Creates a new meta table.
+
+        Parameters
+        ----------
+        fmt : dict
+            Dictionary of column names/types and special conditions that characterises the table.
+            The easiest way to generate this is to instantiate a FormatSpecifier object and then use
+            generate() to create this.
+            Metadata tables are expected to have the first column designated as 'data_tblname TEXT'.
+        tablename : str
+            The table name.
+        ifNotExists : bool, optional
+            Prevents creation if the table already exists. The default is False.
+        encloseTableName : bool, optional
+            Encloses the table name in quotes to allow for certain table names which may fail;
+            for example, this is necessary if the table name starts with digits.
+            The default is True.
+        commitNow : bool, optional
+            Calls commit on the database connection after the transaction if True. 
+            The default is False.
+        '''
+
+        # Check if the format and table names are valid
+        if not tablename.endswith(MetaTableProxy.requiredTableSuffix):
+            raise ValueError("Metadata table %s must end with %s" % (tablename, MetaTableProxy.requiredTableSuffix))
+
+        if not FormatSpecifier.dictContainsColumn(fmt, MetaTableProxy.requiredColumn):
+            raise ValueError("Metadata table %s must contain the column %s" % (tablename, MetaTableProxy.requiredColumn))
+
+        # Otherwise, everything else is the same
+        stmt = self._makeCreateTableStatement(fmt, tablename, ifNotExists, encloseTableName)
+        self.cur.execute(stmt)
+        if commitNow:
+            self.con.commit()
+
+        # Populate internal structure
+        self._parseTable(tablename, stmt, 'table')
+
+    def createDataTable(self, 
+                        fmt: dict, 
+                        tablename: str, 
+                        metadata: list, 
+                        metatablename: str,
+                        metaOrReplace: bool=False,
+                        ifNotExists: bool=False, 
+                        encloseTableName: bool=True, 
+                        commitNow: bool=False):
+        '''
+        Creates a new data table. This table will be intrinsically linked to a row in the associated metadata table.
+
+        Parameters
+        ----------
+        fmt : dict
+            Dictionary of column names/types and special conditions that characterises the table.
+            The easiest way to generate this is to instantiate a FormatSpecifier object and then use
+            generate() to create this.
+        tablename : str
+            The table name.
+        metadata : list
+            The metadata to insert into the metadata table associated with this data table.
+        metatablename : str
+            The metadata table name.
+        metaOrReplace : bool, optional
+            Whether to use orReplace when inserting into the metadata table.
+            Useful when the metadata table has UNIQUE constraints.
+        ifNotExists : bool, optional
+            Prevents creation if the table already exists. The default is False.
+        encloseTableName : bool, optional
+            Encloses the table name in quotes to allow for certain table names which may fail;
+            for example, this is necessary if the table name starts with digits.
+            The default is True.
+        commitNow : bool, optional
+            Calls commit on the database connection after the transaction if True. 
+            The default is False.
+        '''
+
+        # Check if the meta table exists
+        if not metatablename in self._tables.keys():
+            raise ValueError("Metadata table %s does not exist!" % metatablename)
+
+        # Insert the associated metadata into the metadata table
+        metastmt = self._makeInsertStatement(
+            metatablename,
+            self._tables[metatablename]._fmt,
+            orReplace=metaOrReplace,
+            encloseTableName=encloseTableName)
+        metadata.insert(0, tablename) # The first argument is the name of the data table
+        self.cur.execute(metastmt, metadata)
+
+        # Otherwise, everything else is the same
+        stmt = self._makeCreateTableStatement(fmt, tablename, ifNotExists, encloseTableName)
+        self.cur.execute(stmt)
+        if commitNow:
+            self.con.commit()
+
+        # Create the table internally
+        self._parseTable(tablename, stmt, 'table')
+        # Update it as a special DataTable
+        self._parseDataTable(tablename, metatablename)
+
+
+
+    def dropTable(self, tablename: str, commitNow: bool=False):
+        '''
+        Drops a table.
+
+        Parameters
+        ----------
+        tablename : str
+            The table name.
+        commitNow : bool, optional
+            Calls commit on the database connection after the transaction if True. 
+            The default is False.
+        '''
+        self.cur.execute(self._makeDropStatement(tablename))
+        if commitNow:
+            self.con.commit()
+
+        # Remove from internal structure
+        self._tables.pop(tablename) # TODO: handle meta/data table complications?
+
+
+    ### These are useful methods to direct calls to a table or query tables
+    def __getitem__(self, tablename: str) -> TableProxy:
+        return self._tables[tablename]
+
+
+    @property
+    def relationships(self):
+        """
+        Returns a dictionary of parent (key) to child (value) relationships.
+        Each key is a 2-tuple of the form tablename,columnname.
+        Values are returned as a list of 2-tuples, as multiple children may
+        point to the same parent, even from within the same child table.
+
+        Returns
+        -------
+        dict
+            Parent to child relationship dictionary.
+        """
+        return self._relations
+
+    @property
+    def tablenames(self):
+        '''
+        List of names of current tables in the database.
+        You may need to call reloadTables() if something is missing.
+        '''
+        return list(self._tables.keys())
+
+    @property
+    def tables(self):
+        '''
+        Dictionary of TableProxy objects that can be used individually to do table-specific actions.
+        You may need to call reloadTables() if something is missing.
+        '''
+        return self._tables
 
         
 #%%
