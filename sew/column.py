@@ -1,3 +1,4 @@
+from .condition import Condition
 
 
 #%% And also a class for columns
@@ -33,37 +34,36 @@ class ColumnProxy:
     def __str__(self):
         return "%s %s" % (self._name, self._typehint)
 
-    def _requireColumnProxy(self, x):
-        if not isinstance(x, self.__class__):
-            raise TypeError("Comparisons are only allowed between ColumnProxy objects.")
+    # def _requireColumnProxy(self, x):
+    #     if not isinstance(x, self.__class__):
+    #         raise TypeError("Comparisons are only allowed between ColumnProxy objects.")
 
     # def _requireType(self, x):
     #     if not isinstance(x, self.typehint):
     #         raise TypeError("Compared value must be of type %s" % str(self.typehint))
 
+    #### Condition generators
+    # Each of these should produce a Condition object
+    # We do our best here to stringify any Pythonic object i.e. str(x)
+    # If it fails, then let it fail and the user will know
+    # If it succeeds then we can return the SQL string so the user can check that it's sensible
     def __lt__(self, x):
-        self._requireColumnProxy(x)
-        return "%s < %s" % (self._name, x.name)
+        return "%s < %s" % (self._name, str(x))
 
     def __le__(self, x):
-        self._requireColumnProxy(x)
-        return "%s <= %s" % (self._name, x.name)
+        return "%s <= %s" % (self._name, str(x))
 
     def __gt__(self, x):
-        self._requireColumnProxy(x)
-        return "%s > %s" % (self._name, x.name)
+        return "%s > %s" % (self._name, str(x))
 
     def __ge__(self, x):
-        self._requireColumnProxy(x)
-        return "%s >= %s" % (self._name, x.name)
+        return "%s >= %s" % (self._name, str(x))
 
     def __eq__(self, x):
-        self._requireColumnProxy(x)
-        return "%s = %s" % (self._name, x.name)
+        return "%s = %s" % (self._name, str(x))
 
     def __ne__(self, x):
-        self._requireColumnProxy(x)
-        return "%s != %s" % (self._name, x.name)
+        return "%s != %s" % (self._name, str(x))
 
 #%%
 class ColumnProxyContainer:
