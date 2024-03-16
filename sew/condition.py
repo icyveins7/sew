@@ -40,9 +40,9 @@ class Condition:
     >> col1 = 5 AND col2 > 10 OR col3 < 20
 
     Note that due to the nature of Python's built-in operators, you can't place them all in one line unless you wrap each step in parentheses.
-    
+
     Example:
-    
+
     c = Condition("col1") == '5' & 'col2' > '10' # This does not work because Python will compare 'col2' > '10' separately which will give an error.
     c = (Condition("col1") == '5') & (Condition("col2") > '10') # This is a possible workaround, but is slightly verbose.
     c = ((Condition("col1") == '5') & "col2") > '10' # This is another workaround, which is less verbose but will require parentheses after every operator.
@@ -57,7 +57,7 @@ class Condition:
 
     def __str__(self) -> str:
         return self._cond
-    
+
     def __repr__(self) -> str:
         return self._cond
 
@@ -65,143 +65,143 @@ class Condition:
     def LIKE(self, other: Condition) -> Condition:
         # May be a string, in which case just attach it to the current condition
         if isinstance(other, str):
-            self._cond = "%s LIKE %s" % (self._cond, other)
-        
+            condstr = "%s LIKE %s" % (self._cond, other)
+
         # Otherwise mutate the current instance
         elif isinstance(other, Condition):
-            self._cond = "%s LIKE %s" % (self._cond, other._cond)
+            condstr = "%s LIKE %s" % (self._cond, other._cond)
 
         else:
             raise TypeError("Condition must be a string or Condition.")
-        
-        return self
-    
+
+        return Condition(condstr)
+
     def IN(self, other: Condition) -> Condition:
         # May be a tuple or list of strings
         if isinstance(other, list) or isinstance(other, tuple):
-            self._cond = "%s IN (%s)" % (self._cond, ",".join(other))
-        
+            condstr = "%s IN (%s)" % (self._cond, ",".join(other))
+
         # Otherwise mutate the current instance
         elif isinstance(other, Condition):
-            self._cond = "%s IN (%s)" % (self._cond, ",".join(other._cond))
+            condstr = "%s IN (%s)" % (self._cond, ",".join(other._cond))
 
         else:
             raise TypeError("Condition must be a list/tuple or Condition.")
-        
-        return self
-    
+
+        return Condition(condstr)
+
     # TODO: ALL, ANY, BETWEEN, EXISTS
-    
+
     # Operator overloads
     def __and__(self, other: Condition) -> Condition:
         # May be a string, in which case just attach it to the current condition
         if isinstance(other, str):
-            self._cond = "%s AND %s" % (self._cond, other)
-        
+            condstr = "%s AND %s" % (self._cond, other)
+
         # Otherwise mutate the current instance
         elif isinstance(other, Condition):
-            self._cond = "%s AND %s" % (self._cond, other._cond)
+            condstr = "%s AND %s" % (self._cond, other._cond)
 
         else:
             raise TypeError("Condition must be a string or Condition.")
-        
-        return self
+
+        return Condition(condstr)
 
     def __or__(self, other: Condition) -> Condition:
         # May be a string, in which case just attach it to the current condition
         if isinstance(other, str):
-            self._cond = "%s OR %s" % (self._cond, other)
-        
+            condstr = "%s OR %s" % (self._cond, other)
+
         # Otherwise mutate the current instance
         elif isinstance(other, Condition):
-            self._cond = "%s OR %s" % (self._cond, other._cond)
+            condstr = "%s OR %s" % (self._cond, other._cond)
 
         else:
             raise TypeError("Condition must be a string or Condition.")
-        
-        return self
-    
+
+        return Condition(condstr)
+
     def __eq__(self, other: Condition) -> Condition:
         # May be a string, in which case just attach it to the current condition
         if isinstance(other, str):
-            self._cond = "%s = %s" % (self._cond, other)
-        
+            condstr = "%s = %s" % (self._cond, other)
+
         # Otherwise mutate the current instance
         elif isinstance(other, Condition):
-            self._cond = "%s = %s" % (self._cond, other._cond)
+            condstr = "%s = %s" % (self._cond, other._cond)
 
         else:
             raise TypeError("Condition must be a string or Condition.")
-        
-        return self
-    
+
+        return Condition(condstr)
+
     def __ne__(self, other: Condition) -> Condition:
         # May be a string, in which case just attach it to the current condition
         if isinstance(other, str):
-            self._cond = "%s != %s" % (self._cond, other)
-        
+            condstr = "%s != %s" % (self._cond, other)
+
         # Otherwise mutate the current instance
         elif isinstance(other, Condition):
-            self._cond = "%s != %s" % (self._cond, other._cond)
+            condstr = "%s != %s" % (self._cond, other._cond)
 
         else:
             raise TypeError("Condition must be a string or Condition.")
-        
-        return self
-    
+
+        return Condition(condstr)
+
     def __gt__(self, other: Condition) -> Condition:
         # May be a string, in which case just attach it to the current condition
         if isinstance(other, str):
-            self._cond = "%s > %s" % (self._cond, other)
-        
+            condstr = "%s > %s" % (self._cond, other)
+
         # Otherwise mutate the current instance
         elif isinstance(other, Condition):
-            self._cond = "%s > %s" % (self._cond, other._cond)
+            condstr = "%s > %s" % (self._cond, other._cond)
 
         else:
             raise TypeError("Condition must be a string or Condition.")
-        
-        return self
-    
+
+        return Condition(condstr)
+
     def __ge__(self, other: Condition) -> Condition:
         # May be a string, in which case just attach it to the current condition
         if isinstance(other, str):
-            self._cond = "%s >= %s" % (self._cond, other)
-        
+            condstr = "%s >= %s" % (self._cond, other)
+
         # Otherwise mutate the current instance
         elif isinstance(other, Condition):
-            self._cond = "%s >= %s" % (self._cond, other._cond)
+            condstr = "%s >= %s" % (self._cond, other._cond)
 
         else:
             raise TypeError("Condition must be a string or Condition.")
-        
-        return self
-    
+
+        return Condition(condstr)
+
     def __lt__(self, other: Condition) -> Condition:
         # May be a string, in which case just attach it to the current condition
         if isinstance(other, str):
-            self._cond = "%s < %s" % (self._cond, other)
-        
+            condstr = "%s < %s" % (self._cond, other)
+
         # Otherwise mutate the current instance
         elif isinstance(other, Condition):
-            self._cond = "%s < %s" % (self._cond, other._cond)
+            condstr = "%s < %s" % (self._cond, other._cond)
 
         else:
             raise TypeError("Condition must be a string or Condition.")
-        
-        return self
-    
+
+        return Condition(condstr)
+
     def __le__(self, other: Condition) -> Condition:
         # May be a string, in which case just attach it to the current condition
         if isinstance(other, str):
-            self._cond = "%s <= %s" % (self._cond, other)
-        
+            condstr = "%s <= %s" % (self._cond, other)
+
         # Otherwise mutate the current instance
         elif isinstance(other, Condition):
-            self._cond = "%s <= %s" % (self._cond, other._cond)
+            condstr = "%s <= %s" % (self._cond, other._cond)
 
         else:
             raise TypeError("Condition must be a string or Condition.")
-        
-        return self
-    
+
+        return Condition(condstr)
+

@@ -47,23 +47,23 @@ class ColumnProxy:
     # We do our best here to stringify any Pythonic object i.e. str(x)
     # If it fails, then let it fail and the user will know
     # If it succeeds then we can return the SQL string so the user can check that it's sensible
-    def __lt__(self, x):
-        return "%s < %s" % (self._name, str(x))
+    def __lt__(self, x) -> Condition:
+        return Condition("%s" % (self._name)) < "%s" % (str(x))
 
-    def __le__(self, x):
-        return "%s <= %s" % (self._name, str(x))
+    def __le__(self, x) -> Condition:
+        return Condition("%s" % (self._name)) <= "%s" % (str(x))
 
-    def __gt__(self, x):
-        return "%s > %s" % (self._name, str(x))
+    def __gt__(self, x) -> Condition:
+        return Condition("%s" % (self._name)) > "%s" % (str(x))
 
-    def __ge__(self, x):
-        return "%s >= %s" % (self._name, str(x))
+    def __ge__(self, x) -> Condition:
+        return Condition("%s" % (self._name)) >= "%s" % (str(x))
 
-    def __eq__(self, x):
-        return "%s = %s" % (self._name, str(x))
+    def __eq__(self, x) -> Condition:
+        return Condition("%s" % (self._name)) == "%s" % (str(x))
 
-    def __ne__(self, x):
-        return "%s != %s" % (self._name, str(x))
+    def __ne__(self, x) -> Condition:
+        return Condition("%s" % (self._name)) != "%s" % (str(x))
 
 #%%
 class ColumnProxyContainer:

@@ -10,6 +10,7 @@ import re
 
 from .formatSpec import FormatSpecifier
 from .column import ColumnProxy, ColumnProxyContainer
+from .condition import Condition
 
 #%% Basic container, the most barebones
 class SqliteContainer:
