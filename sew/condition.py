@@ -175,7 +175,6 @@ class Condition:
         if isinstance(other, str):
             condstr = "%s != %s" % (self._cond, other)
 
-        # 
         elif isinstance(other, Condition):
             condstr = "%s != %s" % (self._cond, other._cond)
 
@@ -189,7 +188,6 @@ class Condition:
         if isinstance(other, str):
             condstr = "%s > %s" % (self._cond, other)
 
-        # 
         elif isinstance(other, Condition):
             condstr = "%s > %s" % (self._cond, other._cond)
 
@@ -203,7 +201,6 @@ class Condition:
         if isinstance(other, str):
             condstr = "%s >= %s" % (self._cond, other)
 
-        # 
         elif isinstance(other, Condition):
             condstr = "%s >= %s" % (self._cond, other._cond)
 
@@ -217,7 +214,6 @@ class Condition:
         if isinstance(other, str):
             condstr = "%s < %s" % (self._cond, other)
 
-        # 
         elif isinstance(other, Condition):
             condstr = "%s < %s" % (self._cond, other._cond)
 
@@ -231,7 +227,6 @@ class Condition:
         if isinstance(other, str):
             condstr = "%s <= %s" % (self._cond, other)
 
-        # 
         elif isinstance(other, Condition):
             condstr = "%s <= %s" % (self._cond, other._cond)
 
