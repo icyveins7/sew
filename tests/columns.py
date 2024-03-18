@@ -86,5 +86,42 @@ class TestColumnProxy(unittest.TestCase):
             "col1 < 10 OR col2 > 20"
         )
 
+    def test_column_composite_comparisons_noncommutative(self):
+        # Here we test 3 or more comparisons in a chain
+        # First, 3 ORs
+        cond1 = sew.Condition("col1 < 10")
+        cond2 = sew.Condition("col2 < 10")
+        cond3 = sew.Condition("col3 < 10")
+
+        comp = cond1 | cond2 | cond3
+        self.assertEqual(
+            str(comp),
+            "(col1 < 10 OR col2 < 10) OR col3 < 10"
+        )
+
+        # Now, 3 ANDs
+        comp = cond1 & cond2 & cond3
+        self.assertEqual(
+            str(comp),
+            "(col1 < 10 AND col2 < 10) AND col3 < 10"
+        )
+
+        # Now, if we mix them up, they should be correctly bracketed
+        comp = (cond1 | cond2) & cond3
+        self.assertEqual(
+            str(comp),
+            "(col1 < 10 OR col2 < 10) AND col3 < 10"
+        )
+        comp = cond1 | (cond2 & cond3)
+        self.assertEqual(
+            str(comp),
+            "col1 < 10 OR (col2 < 10 AND col3 < 10)"
+        )
+        # Note that the previous one is functionally equivalent to having no brackets, since python evaluates the & first, same as SQLite!
+        comp = cond1 | cond2 & cond3
+        self.assertEqual(
+            str(comp),
+            "col1 < 10 OR (col2 < 10 AND col3 < 10)"
+        )
 
 

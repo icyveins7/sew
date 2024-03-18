@@ -1,5 +1,6 @@
 # Import this for type hints with classes
 from __future__ import annotations
+import re
 
 class Condition:
     """
@@ -50,10 +51,17 @@ class Condition:
     c = Condition("col1 = 5") & Condition("col2 = 10") & Condition("col3 = 6") # No parentheses needed if objects completely wrap each substring, but again very verbose.
     c = (Condition("col1 = 5") & "col2 = 10") & "col3 = 6" # Some parentheses needed, but much less verbose.
     """
-    def __init__(self, first: str):
-        if not isinstance(first, str):
+    def __init__(self, cond: str):
+        if not isinstance(cond, str):
             raise TypeError("Condition must be a string.")
-        self._cond = first
+        self._cond = cond
+        # A composite condition is one that is made up of several different conditions,
+        # stitched via AND or OR keywords, so we search for these
+        if re.search("(and|or)", self._cond, re.IGNORECASE) is not None:
+            self._isComposite = True
+        else:
+            self._isComposite = False
+
 
     def __str__(self) -> str:
         return self._cond
@@ -67,7 +75,7 @@ class Condition:
         if isinstance(other, str):
             condstr = "%s LIKE %s" % (self._cond, other)
 
-        # Otherwise mutate the current instance
+        # 
         elif isinstance(other, Condition):
             condstr = "%s LIKE %s" % (self._cond, other._cond)
 
@@ -81,7 +89,7 @@ class Condition:
         if isinstance(other, list) or isinstance(other, tuple):
             condstr = "%s IN (%s)" % (self._cond, ",".join(other))
 
-        # Otherwise mutate the current instance
+        # 
         elif isinstance(other, Condition):
             condstr = "%s IN (%s)" % (self._cond, ",".join(other._cond))
 
@@ -92,41 +100,68 @@ class Condition:
 
     # TODO: ALL, ANY, BETWEEN, EXISTS
 
-    # Operator overloads
-    def __and__(self, other: Condition) -> Condition:
-        # May be a string, in which case just attach it to the current condition
-        if isinstance(other, str):
-            condstr = "%s AND %s" % (self._cond, other)
+    def _compositeBracket(self):
+        """
+        Helper method to surround the condition with brackets if it is a composite condition
+        e.g. is conditionA AND conditionB.
 
-        # Otherwise mutate the current instance
+        You need this in non-commutative conditions e.g.
+        A AND B OR C is not the same as A AND (B OR C).
+        """
+        if self._isComposite:
+            return "(" + self._cond + ")"
+        else:
+            return self._cond
+
+
+    ##### Composite Operator overloads
+    def __and__(self, other: Condition) -> Condition:
+        # If it's a string, convert to a Condition and then use the convenience operator
+        if isinstance(other, str):
+            condstr = "%s AND %s" % (
+                self._compositeBracket(),
+                other._compositeBracket()
+            )
+
         elif isinstance(other, Condition):
-            condstr = "%s AND %s" % (self._cond, other._cond)
+            condstr = "%s AND %s" % (
+                self._compositeBracket(),
+                other._compositeBracket()
+            )
 
         else:
             raise TypeError("Condition must be a string or Condition.")
 
         return Condition(condstr)
+
+
 
     def __or__(self, other: Condition) -> Condition:
-        # May be a string, in which case just attach it to the current condition
+        # If it's a string, convert to a Condition and then use the convenience operator
         if isinstance(other, str):
-            condstr = "%s OR %s" % (self._cond, other)
+            condstr = "%s OR %s" % (
+                self._compositeBracket(), 
+                Condition(other)._compositeBracket()
+            )
 
-        # Otherwise mutate the current instance
         elif isinstance(other, Condition):
-            condstr = "%s OR %s" % (self._cond, other._cond)
+            condstr = "%s OR %s" % (
+                self._compositeBracket(),
+                other._compositeBracket()
+            )
 
         else:
             raise TypeError("Condition must be a string or Condition.")
 
         return Condition(condstr)
 
+
+    ##### Simple comparison operator overloads
     def __eq__(self, other: Condition) -> Condition:
-        # May be a string, in which case just attach it to the current condition
+        # If it's a string, convert to a Condition and then use the convenience operator
         if isinstance(other, str):
             condstr = "%s = %s" % (self._cond, other)
 
-        # Otherwise mutate the current instance
         elif isinstance(other, Condition):
             condstr = "%s = %s" % (self._cond, other._cond)
 
@@ -140,7 +175,7 @@ class Condition:
         if isinstance(other, str):
             condstr = "%s != %s" % (self._cond, other)
 
-        # Otherwise mutate the current instance
+        # 
         elif isinstance(other, Condition):
             condstr = "%s != %s" % (self._cond, other._cond)
 
@@ -154,7 +189,7 @@ class Condition:
         if isinstance(other, str):
             condstr = "%s > %s" % (self._cond, other)
 
-        # Otherwise mutate the current instance
+        # 
         elif isinstance(other, Condition):
             condstr = "%s > %s" % (self._cond, other._cond)
 
@@ -168,7 +203,7 @@ class Condition:
         if isinstance(other, str):
             condstr = "%s >= %s" % (self._cond, other)
 
-        # Otherwise mutate the current instance
+        # 
         elif isinstance(other, Condition):
             condstr = "%s >= %s" % (self._cond, other._cond)
 
@@ -182,7 +217,7 @@ class Condition:
         if isinstance(other, str):
             condstr = "%s < %s" % (self._cond, other)
 
-        # Otherwise mutate the current instance
+        # 
         elif isinstance(other, Condition):
             condstr = "%s < %s" % (self._cond, other._cond)
 
@@ -196,7 +231,7 @@ class Condition:
         if isinstance(other, str):
             condstr = "%s <= %s" % (self._cond, other)
 
-        # Otherwise mutate the current instance
+        # 
         elif isinstance(other, Condition):
             condstr = "%s <= %s" % (self._cond, other._cond)
 
