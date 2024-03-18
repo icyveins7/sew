@@ -48,6 +48,9 @@ There are no additional requirements to install to use the base functionality, a
 pip install -r plugin_requirements.txt
 ```
 
+## Note on Github Branches
+Unless there's glaring bugs present, I will work solely on the ```dev``` branch in between releases. As such, pulling from ```master``` should be safe from my on-going work that might break things.
+
 # Usage
 The most common use-case is to initialise a ```Database``` object, just like you would with sqlite3.
 
