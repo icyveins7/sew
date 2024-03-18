@@ -124,4 +124,19 @@ class TestColumnProxy(unittest.TestCase):
             "col1 < 10 OR (col2 < 10 AND col3 < 10)"
         )
 
+        # We should also test them with raw strings
+        cond2and3 = "col2 < 10 AND col3 < 10"
+        cond1or2 = "col1 < 10 OR col2 < 10"
+        comp = sew.Condition(cond1or2) & cond3
+        self.assertEqual(
+            str(comp),
+            "(col1 < 10 OR col2 < 10) AND col3 < 10"
+        )
+
+        comp = sew.Condition("col1 < 10") | cond2and3
+        self.assertEqual(
+            str(comp),
+            "col1 < 10 OR (col2 < 10 AND col3 < 10)"
+        )
+
 
