@@ -2,7 +2,18 @@ from .condition import Condition
 
 
 #%% And also a class for columns
-### TODO: Intention for this is to build it into a way to automatically generate conditions in select statements..
+"""
+TODO: Intention for this is to build it into a way to automatically generate conditions in select statements..
+
+1) Within-table case, ColumnProxy operator (ColumnProxy | str)
+This should generate a normal condition.
+
+2) Cross-table case ColumnProxy == ColumnProxy
+This should generate an INNER JOIN.
+We then need to see how many INNER JOINS there are,
+alias the tables uniquely,
+and perform the selects using the aliases.
+"""
 class ColumnProxy:
     """
     Class to represent a column in a table.
