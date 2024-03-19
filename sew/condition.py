@@ -235,3 +235,5 @@ class Condition:
 
         return Condition(condstr)
 
+    ##### NOTE: you cannot overload 'in' keyword, as __contains__ always casts the return to a bool
+

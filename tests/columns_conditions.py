@@ -139,4 +139,11 @@ class TestColumnProxy(unittest.TestCase):
             "col1 < 10 OR (col2 < 10 AND col3 < 10)"
         )
 
+        # Finally test a 4-way condition
+        comp = (cond1 | cond2) & (cond3 | "col4 < 100")
+        self.assertEqual(
+            str(comp),
+            "(col1 < 10 OR col2 < 10) AND (col3 < 10 OR col4 < 100)"
+        )
+
 
