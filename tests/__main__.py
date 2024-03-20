@@ -16,9 +16,9 @@ print("Begin tests")
 print("Running statements unittests")
 from .statements import *
 
-# Import columns unittests
-print("Running columns unittests")
-from .columns import *
+# Import columns & conditions unittests
+print("Running columns & conditions unittests")
+from .columns_conditions import *
 
 # Import correctness unittests
 print("Running correctness unittests")
