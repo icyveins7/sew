@@ -94,5 +94,8 @@ class ColumnProxyContainer:
             # Here is where we set the attribute directly
             setattr(self, col.name, col)
 
+    def __getitem__(self, key: str) -> ColumnProxy:
+        return getattr(self, key)
+
 
 

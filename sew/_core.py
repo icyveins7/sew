@@ -269,27 +269,27 @@ class TableProxy(StatementGeneratorMixin):
         self._fmt = fmt
         self._cols = self._populateColumns()
 
-    def _populateColumns(self):
-        cols = dict()
+    def _populateColumns(self) -> ColumnProxyContainer:
+        cols = list()
         # typehints = 
         for col in self._fmt['cols']:
             colname = col[0]
             # Parse the type (note that we cannot determine the upper/lowercase)
             if re.match(r"int", col[1], flags=re.IGNORECASE): # All the versions have the substring 'int', so this works
-                cols[colname] = ColumnProxy(colname, int, self._tbl)
+                cols.append(ColumnProxy(colname, int, self._tbl))
             elif re.match(r"text", col[1], flags=re.IGNORECASE) or re.match(r"char", col[1], flags=re.IGNORECASE):
-                cols[colname] = ColumnProxy(colname, str, self._tbl)
+                cols.append(ColumnProxy(colname, str, self._tbl))
             elif re.match(r"real", col[1], flags=re.IGNORECASE) or re.match(r"double", col[1], flags=re.IGNORECASE) or re.match(r"float", col[1], flags=re.IGNORECASE):
-                cols[colname] = ColumnProxy(colname, float, self._tbl)
+                cols.append(ColumnProxy(colname, float, self._tbl))
             elif re.match(r"blob", col[1], flags=re.IGNORECASE):
-                cols[colname] = ColumnProxy(colname, bytes, self._tbl)
+                cols.append(ColumnProxy(colname, bytes, self._tbl))
             elif re.match(r"numeric", col[1], flags=re.IGNORECASE):
-                cols[colname] = ColumnProxy(colname, (int, float), self._tbl)
+                cols.append(ColumnProxy(colname, (int, float), self._tbl))
             else:
-                # cols[colname] = ColumnProxy(colname, object)
+                # cols.append(ColumnProxy(colname, object)
                 raise NotImplementedError("Unknown parse for sql type %s" % col[1])
 
-        return cols
+        return ColumnProxyContainer(cols)
 
 
     def __getitem__(self, i: slice):

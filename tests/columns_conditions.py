@@ -4,6 +4,21 @@ from ._helpers import *
 import unittest
 
 #%%
+class TestColumnProxyContainer(unittest.TestCase):
+    def test_columnProxyContainer_simple(self):
+        column1 = sew.ColumnProxy("col1", "int", "mytbl")
+        column2 = sew.ColumnProxy("col2", "int", "mytbl")
+        container = sew.ColumnProxyContainer([column1, column2])
+
+        # Retrieve by dict-like string
+        self.assertEqual(column1, container['col1'])
+        self.assertEqual(column2, container['col2'])
+
+        # Retrieve by attribute
+        self.assertEqual(column1, container.col1)
+        self.assertEqual(column2, container.col2)
+
+
 class TestColumnProxy(unittest.TestCase):
     def test_columnProxy_properties(self):
         # Create a simple one
