@@ -41,14 +41,14 @@ class SqliteContainer:
         For use in a with statement.
         '''
         return self
-    
+
     def __exit__(self, type, value, traceback):
         '''
         For use in a with statement.
         Closes the connection for you, unlike default sqlite3.Connection.
         '''
         self.con.close()
-        
+
 #%% Mixin to redirect common sqlite methods for brevity in code later
 class CommonRedirectMixin:
     def __init__(self, *args, **kwargs):
@@ -56,7 +56,7 @@ class CommonRedirectMixin:
         Provides several redirects to common methods, just to have shorter code.
         '''
         super().__init__(*args, **kwargs)
-        
+
         self.close = self.con.close
         self.execute = self.cur.execute
         self.executemany = self.cur.executemany
@@ -64,12 +64,12 @@ class CommonRedirectMixin:
         self.fetchone = self.cur.fetchone
         self.fetchall = self.cur.fetchall
         self.fetchmany = self.cur.fetchmany
-        
+
 #%% Mixin that contains the helper methods for statement generation. Note that this builds off the standard format.
 class StatementGeneratorMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-    
+
     @staticmethod
     def _encloseTableName(tablename: str):
         return '"%s"' % tablename
@@ -77,16 +77,16 @@ class StatementGeneratorMixin:
     @staticmethod
     def _makeTableColumns(fmt: dict):
         return ', '.join([' '.join(i) for i in fmt['cols']])
-    
+
     @staticmethod
     def _makeTableConditions(fmt: dict):
         return ', '.join(fmt['conds'])
-    
+
     @staticmethod
     def _makeTableForeignKeys(fmt: dict):
         return ', '.join(
             ["FOREIGN KEY(%s) REFERENCES %s" % (i[0], i[1]) for i in fmt['foreign_keys']])
-    
+
     @staticmethod
     def _makeCreateTableStatement(
         fmt: dict, tablename: str, ifNotExists: bool=False, encloseTableName: bool=True
@@ -99,7 +99,7 @@ class StatementGeneratorMixin:
             ", %s" % (StatementGeneratorMixin._makeTableForeignKeys(fmt)) if fmt.get('foreign_keys') is not None and len(fmt['foreign_keys']) > 0 else ''
         )
         return stmt
-    
+
     @staticmethod
     def _makeCreateViewStatemnt(
         selectStmt: str, viewtablename: str, ifNotExists: bool=False, encloseTableName: bool=True
@@ -114,17 +114,17 @@ class StatementGeneratorMixin:
     @staticmethod
     def _makeQuestionMarks(n: int): # fmt: dict):
         return ','.join(["?"] * n)
-    
+
     @staticmethod
     def _makeNotNullConditionals(cols: dict):
         return ' and '.join(("%s is not null" % (i[0]) for i in cols))
-    
+
     @staticmethod
     def _stitchConditions(conditions: list):
         conditionsList = [conditions] if isinstance(conditions, str) else conditions # Turn into a list if supplied as a single string
         conditionsStr = ' where ' + ' and '.join(conditionsList) if isinstance(conditionsList, list) else ''
         return conditionsStr
-    
+
     @staticmethod
     def _makeCaseSingleConditionVariable(conditionVariable: str, whenthens: list, finalElse: str):
         """
@@ -162,7 +162,7 @@ class StatementGeneratorMixin:
         s = "CASE %s\n%s\nELSE %s\nEND" % (conditionVariable, whenthensStr, finalElse)
 
         return s
-        
+
     @staticmethod
     def _makeCaseMultipleConditionVariables(whenthens: list, finalElse: str):
         """
@@ -200,7 +200,7 @@ class StatementGeneratorMixin:
         s = "CASE\n%s\nELSE %s\nEND" % (whenthensStr, finalElse)
 
         return s
-    
+
     @staticmethod
     def _makeSelectStatement(columnNames: list,
                              tablename: str,
@@ -222,7 +222,7 @@ class StatementGeneratorMixin:
                 orderBy
             )
         return stmt
-    
+
     @staticmethod
     def _makeInsertStatement(
         tablename: str, fmt: dict, orReplace: bool=False, encloseTableName: bool=True
@@ -233,7 +233,7 @@ class StatementGeneratorMixin:
                 StatementGeneratorMixin._makeQuestionMarks(len(fmt['cols']))
             )
         return stmt
-    
+
     @staticmethod
     def _makeInsertStatementWithNamedColumns(
         tablename: str, insertedColumns: list, orReplace: bool=False, encloseTableName: bool=True
@@ -422,7 +422,7 @@ class TableProxy(StatementGeneratorMixin):
             for example, this is necessary if the table name starts with digits.
             The default is True.
         """
-        
+
         stmt = self._makeDeleteStatement(
             self._tbl, conditions, encloseTableName)
         self._parent.cur.execute(stmt)
@@ -430,7 +430,7 @@ class TableProxy(StatementGeneratorMixin):
             self._parent.con.commit()
         return stmt
 
-    
+
     def insertOne(self, 
                   *args, 
                   orReplace: bool=False, 
@@ -464,11 +464,11 @@ class TableProxy(StatementGeneratorMixin):
                 insertOne(row)
                 # After selection, the corresponding row will be
                 # {'col1': 11, 'col2': None, 'col3': 22}
-                
+
         orReplace : bool, optional
             Overwrites the same data if True, otherwise a new row is created.
             The default is False.
-            
+
         commitNow : bool, optional
             Calls commit on the database connection after the transaction if True. 
             The default is False.
@@ -485,14 +485,14 @@ class TableProxy(StatementGeneratorMixin):
         '''
         if isinstance(args[0], tuple) or isinstance(args[0], list):
             raise TypeError("Do not enclose the arguments in a list/tuple yourself!")
-        
+
         if isinstance(args[0], dict):
             keys = list(args[0].keys())
             stmt = self._makeInsertStatementWithNamedColumns(
                 self._tbl, keys, orReplace, encloseTableName
             )
             self._parent.cur.execute(stmt, [args[0][k] for k in keys])
-    
+
         else:
             stmt = self._makeInsertStatement(
                 self._tbl, self._fmt, orReplace, encloseTableName
@@ -502,7 +502,7 @@ class TableProxy(StatementGeneratorMixin):
         if commitNow:
             self._parent.con.commit()
         return stmt
-        
+
     def insertMany(self, 
                    rows: list, 
                    orReplace: bool=False, 
@@ -519,7 +519,7 @@ class TableProxy(StatementGeneratorMixin):
             An iterable or generator expression of the data of multiple rows. 
             It is assumed implicitly that every column has a value inserted i.e.
             no missing columns. 
-            
+
             Dictionary mode insertion like in insertOne() is not supported as the
             statement would mutate on every row. See insertManyNamedColumns() for such use-cases.
             See sqlite3.executemany() for more information.
@@ -533,11 +533,11 @@ class TableProxy(StatementGeneratorMixin):
                 insertMany(
                     ((data1[i], data2[i]) for i in range(data1.size))
                 )
-            
+
         orReplace : bool, optional
             Overwrites the same data if True, otherwise a new row is created for every clash.
             The default is False.
-            
+
         commitNow : bool, optional
             Calls commit on the database connection after the transaction if True. 
             The default is False.
@@ -561,7 +561,7 @@ class TableProxy(StatementGeneratorMixin):
         if commitNow:
             self._parent.con.commit()
         return stmt
-    
+
     def insertManyNamedColumns(self, 
                                dictlist: list, 
                                orReplace: bool=False, 
@@ -583,11 +583,11 @@ class TableProxy(StatementGeneratorMixin):
                     {'A': 4, 'B': 5}
                 ]
                 insertManyNamedColumns(dictlist)
-            
+
         orReplace : bool, optional
             Overwrites the same data if True, otherwise a new row is created for every clash.
             The default is False.
-            
+
         commitNow : bool, optional
             Calls commit on the database connection after the transaction if True.
             The default is False.
@@ -862,7 +862,7 @@ class CommonMethodMixin(StatementGeneratorMixin):
     def reloadTables(self):
         '''
         Loads and parses the details of all tables from sqlite_master.
-        
+
         Returns
         -------
         results : 
@@ -893,9 +893,9 @@ class CommonMethodMixin(StatementGeneratorMixin):
             # While doing so, check if it has foreign keys
             # But only if its not a view
             self._parseRelationship(table)
-           
+
         return results
-        
+
     def createTable(self, 
                     fmt: dict, 
                     tablename: str, 
@@ -1097,7 +1097,7 @@ class CommonMethodMixin(StatementGeneratorMixin):
         '''
         return self._tables
 
-        
+
 #%%
 class ViewProxy(TableProxy):
     def __init__(self, parent: SqliteContainer, tbl: str):
@@ -1105,10 +1105,10 @@ class ViewProxy(TableProxy):
 
     def _populateColumns(self):
         return None
-    
+
     def __getitem__(self, col: str):
         raise NotImplementedError("Invalid for view.")
-    
+
     @property
     def columns(self):
         '''
@@ -1116,14 +1116,14 @@ class ViewProxy(TableProxy):
         Not implemented for 
         '''
         raise NotImplementedError("Invalid for view.")
-    
+
     @property
     def columnNames(self):
         '''
         List of column names of the current table.
         '''
         raise NotImplementedError("Invalid for view.")
-    
+
 
 #%% We have a special subclass for tables that are treated as metadata for other tables
 # These tables contain a data_tblname column, and then all other columns are treated as metadata for it.
@@ -1220,7 +1220,7 @@ class Database(CommonRedirectMixin, CommonMethodMixin, SqliteContainer):
                 Includes common methods to create and drop tables, and provides
                 dictionary-like access to all tables currently in the database.
                 Also includes internal methods for statement generation.
-            
+
         Parameters
         ----------
         dbpath : str
@@ -1233,7 +1233,7 @@ class Database(CommonRedirectMixin, CommonMethodMixin, SqliteContainer):
         '''
         super().__init__(dbpath, row_factory, pragma_foreign_keys)
 
-    
+
 #%%
 if __name__ == "__main__":
     d = Database(":memory:")
@@ -1241,10 +1241,10 @@ if __name__ == "__main__":
     columnNames = ["col1", "col2"]
     conditions = ["col1 > ?", "col2 > ?"]
     orderBy = "col1 desc"
-    
+
     print(d._makeSelectStatement(columnNames, tablename))
     print(d._makeSelectStatement(columnNames, tablename, conditions, orderBy))
-    
+
     fmt = {
         'cols': [
             ["col1", "integer"],
@@ -1254,26 +1254,26 @@ if __name__ == "__main__":
             'UNIQUE(col1, col2)'    
         ]
     }
-    
+
     # Test making tables
     d.createTable(fmt, 'table1')
-    
+
     # Test with no conditions
     fmt['conds'] = []
     d.createTable(fmt, 'table2')
     # Reload tables to populate internal dict then query
     d.reloadTables()
     print(d.tablenames)
-    
+
     # Test delete statements
     print(d._makeDeleteStatement('table1'))
     print(d._makeDeleteStatement('table1', ['col1 < 10']))
-    
+
     # Test dropping a table
     d.dropTable('table2', True)
     d.reloadTables()
     print(d.tablenames)
-    
+
     # Test inserting into table with dict-like access
     data = ((i, float(i+1)) for i in range(10)) # Generator expression
     print(d['table1'].insertMany(data))
@@ -1282,4 +1282,4 @@ if __name__ == "__main__":
     results = d.fetchall()
     for result in results:
         print(result[0], result[1])
-    
+
