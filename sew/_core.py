@@ -1357,12 +1357,15 @@ class DataTableProxy(TableProxy):
 
 # %% Inherited class of all the above
 class Database(CommonRedirectMixin, CommonMethodMixin, SqliteContainer):
-    def __init__(self, dbpath: str, row_factory: type = sq.Row, pragma_foreign_keys: bool = True):
+    def __init__(self, dbpath: str, row_factory: type = sq.Row,
+                 pragma_foreign_keys: bool = True):
         '''
-        Instantiates an sqlite database container with all extra functionality included.
+        Instantiates an sqlite database container
+        with all extra functionality included.
         This enables:
             CommonRedirectMixin
-                Provides several redirects to common methods, just to have shorter code.
+                Provides several redirects to common methods,
+                just to have shorter code.
             CommonMethodMixin
                 Includes common methods to create and drop tables, and provides
                 dictionary-like access to all tables currently in the database.
@@ -1374,7 +1377,8 @@ class Database(CommonRedirectMixin, CommonMethodMixin, SqliteContainer):
             The database to connect to (either a filepath or ":memory:").
             See sqlite3.connect() for more information.
         row_factory : type, optional
-            The row factory for the sqlite3 connection. The default is the in-built sqlite3.Row.
+            The row factory for the sqlite3 connection.
+            The default is the in-built sqlite3.Row.
         pragma_foreign_keys : bool, optional
             Turns on PRAGMA FOREIGN_KEYS. The default is True.
         '''
