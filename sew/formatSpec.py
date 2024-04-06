@@ -7,7 +7,9 @@ Created on Mon Dec 19 16:41:17 2022
 
 import re
 
-#%%
+# %%
+
+
 class FormatSpecifier:
     """
     Formats are generated as a dictionary of 'cols' and 'conds'
@@ -37,7 +39,6 @@ class FormatSpecifier:
     "FOREIGN KEY(col_child) REFERENCES parent_table(col_parent)"
     """
 
-
     # Constant statics
     sqliteTypes = {
         int: "INTEGER",
@@ -47,24 +48,28 @@ class FormatSpecifier:
     }
     keywordTypes = [
         "INTEGER", "INT", "REAL", "TEXT", "BLOB",
-        "DOUBLE", "FLOAT", "NUMERIC"] # Non-exhaustive list of keyword types
-    
+        "DOUBLE", "FLOAT", "NUMERIC"]  # Non-exhaustive list of keyword types
+
     # Constructor
-    def __init__(self, cols: list=[], conds: list=[], foreign_keys: list=[]):
-        self.fmt = {'cols': cols, 'conds': conds, 'foreign_keys': foreign_keys}
-        
+    def __init__(self, cols: list = None, conds: list = None, foreign_keys: list = None):
+        self.fmt = {
+            'cols': cols if cols is not None else [],
+            'conds': conds if conds is not None else [],
+            'foreign_keys': foreign_keys if foreign_keys is not None else []
+        }
+
     def __repr__(self):
         return str(self.fmt)
-        
+
     def clear(self):
         self.fmt = {'cols': [], 'conds': [], 'foreign_keys': []}
-        
+
     def _getColumnNames(self):
         return [i[0] for i in self.fmt['cols']]
-        
+
     def addColumn(self, columnName: str, typehint: type):
         self.fmt['cols'].append([columnName, self.sqliteTypes[typehint]])
-        
+
     def addUniques(self, uniqueColumns: list):
         if not all((i in self._getColumnNames() for i in uniqueColumns)):
             raise ValueError("Invalid column found.")
@@ -84,10 +89,8 @@ class FormatSpecifier:
             raise ValueError("Invalid child column found.")
         self.fmt['foreign_keys'].append(childParentPair)
 
-        
     def generate(self):
         return self.fmt
-
 
     @staticmethod
     def _parseColumnDesc(desc: str) -> list[str, str]:
@@ -109,16 +112,16 @@ class FormatSpecifier:
             Returns None if an empty string is passed in.
         '''
         sdesc = desc.strip()
-        if len(sdesc) == 0: # Empty string
+        if len(sdesc) == 0:  # Empty string
             return None
 
         sdesc = sdesc.split(" ")
         if len(sdesc) == 1:
-            return [sdesc[0], ""] # Blank for type
+            return [sdesc[0], ""]  # Blank for type
 
         else:
-            return [sdesc[0], " ".join(sdesc[1:])] # This accounts for INTEGER PRIMARY KEY for e.g.
-
+            # This accounts for INTEGER PRIMARY KEY for e.g.
+            return [sdesc[0], " ".join(sdesc[1:])]
 
     @staticmethod
     def _splitColumnsSql(fmtstr: str) -> tuple[list[list[str]], list[str], list[list[str]]]:
@@ -153,33 +156,37 @@ class FormatSpecifier:
         '''
 
         # Remove any uniques
-        uniques = re.finditer(r"UNIQUE\(.+?\)", fmtstr, flags=re.IGNORECASE) # Non-greedy regex
+        uniques = re.finditer(r"UNIQUE\(.+?\)", fmtstr,
+                              flags=re.IGNORECASE)  # Non-greedy regex
         conds = []
         for unique in uniques:
-            fmtstr = fmtstr.replace(unique.group(), "") # Drop the substring
+            fmtstr = fmtstr.replace(unique.group(), "")  # Drop the substring
             conds.append(unique.group())
-        
+
         # Remove any foreign keys
-        foreignkeys = re.finditer(r"FOREIGN KEY(.+?) REFERENCES (.+?)\)", fmtstr, flags=re.IGNORECASE)
+        foreignkeys = re.finditer(
+            r"FOREIGN KEY(.+?) REFERENCES (.+?)\)", fmtstr, flags=re.IGNORECASE)
         foreign_keys = []
         for foreign in foreignkeys:
-            fmtstr = fmtstr.replace(foreign.group(), "") # Drop the substring
+            fmtstr = fmtstr.replace(foreign.group(), "")  # Drop the substring
             # Get the child column name by searching the first brackets
-            childCol = re.search(r"\(.+?\)", foreign.group(), flags=re.IGNORECASE).group()[1:-1]
+            childCol = re.search(r"\(.+?\)", foreign.group(),
+                                 flags=re.IGNORECASE).group()[1:-1]
             # Get the parent table/column name by taking everything after REFERENCES
-            parentColStart = re.search(r"REFERENCES ", foreign.group(), flags=re.IGNORECASE).span()[1]
+            parentColStart = re.search(
+                r"REFERENCES ", foreign.group(), flags=re.IGNORECASE).span()[1]
             parentCol = foreign.group()[parentColStart:]
             foreign_keys.append([childCol, parentCol])
 
         # Now parse each remaining column description
         cols = [
             sdesc
-            for i in fmtstr.split(",") # Just split by the commas, these should be the only ones left
+            # Just split by the commas, these should be the only ones left
+            for i in fmtstr.split(",")
             if (sdesc := FormatSpecifier._parseColumnDesc(i)) is not None
         ]
 
         return cols, conds, foreign_keys
-
 
     @classmethod
     def fromSql(cls, stmt: str):
@@ -192,12 +199,12 @@ class FormatSpecifier:
             The create table statement.
         '''
         # Pull out everything after tablename, remove parentheses
-        fmtstr = re.search(r"\(.+\)", stmt.replace("\n","").replace("\r","")).group()[1:-1] # Greedy regex 
+        fmtstr = re.search(r"\(.+\)", stmt.replace("\n",
+                           "").replace("\r", "")).group()[1:-1]  # Greedy regex
 
         # Call the two helper methods
         cols, conds, foreign_keys = FormatSpecifier._splitColumnsSql(fmtstr)
         return cls(cols, conds, foreign_keys)
-
 
     @staticmethod
     def dictContainsColumn(fmt: dict, colname: str):
@@ -208,7 +215,7 @@ class FormatSpecifier:
                 check = True
                 break
         return check
-    
+
     @staticmethod
     def getParents(fmt: dict):
         parents = dict()
@@ -220,24 +227,25 @@ class FormatSpecifier:
             # is pointed to by two child columns in the same table
             if (tablename, columnname) not in parents:
                 parents[(tablename, columnname)] = []
-            parents[(tablename, columnname)].append(keydesc[0]) # Map parent -> child column
+            parents[(tablename, columnname)].append(
+                keydesc[0])  # Map parent -> child column
         return parents
-        
 
-#%%
+
+# %%
 if __name__ == "__main__":
     fmtspec = FormatSpecifier()
     fmtspec.addColumn('col1', int)
     fmtspec.addColumn('col2', str)
-    
+
     try:
         fmtspec.addUniques(['col2', 'col3'])
     except Exception as e:
         print(e)
         print("Should raise exception for invalid column.")
-        
+
     fmtspec.addUniques(['col1', 'col2'])
-    
+
     # Add more uniques
     fmtspec.addColumn('col3', float)
     fmtspec.addColumn('col4', float)
@@ -248,11 +256,12 @@ if __name__ == "__main__":
     fmtspec.addForeignKey(['col2', 'parent_table(parentcolB)'])
 
     print(fmtspec.generate())
-    
-    #%% Test fromSql
+
+    # %% Test fromSql
     from ._core import StatementGeneratorMixin
-    
-    stmt = StatementGeneratorMixin._makeCreateTableStatement(fmtspec.generate(), 'table1')
+
+    stmt = StatementGeneratorMixin._makeCreateTableStatement(
+        fmtspec.generate(), 'table1')
     print(stmt)
     genFmtspec = FormatSpecifier.fromSql(stmt)
     print("\n\n\n")
@@ -262,4 +271,4 @@ if __name__ == "__main__":
     # print(id(genFmtspec.fmt))
     # print(fmtspec.generate())
     # print(id(fmtspec.fmt))
-    assert(genFmtspec.fmt == fmtspec.fmt)
+    assert (genFmtspec.fmt == fmtspec.fmt)
