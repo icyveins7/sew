@@ -378,6 +378,18 @@ class TableProxy(StatementGeneratorMixin):
         self._fmt = fmt
         self._cols = self._populateColumns()
 
+    def _reloadFmt(self):
+        """
+        Regenerates the FormatSpecifier for this table.
+        """
+        stmt = self._makeSelectStatement(
+            ["name", "sql", "type"], "sqlite_master",
+            conditions=["type='table'", "name=?"]
+        )
+        self._parent.cur.execute(stmt, (self._tbl, ))
+        result = self._parent.cur.fetchone()
+        self._parent._parseTable(self._tbl, result['sql'], 'table')
+
     def _populateColumns(self) -> ColumnProxyContainer:
         cols = list()
         # typehints =
@@ -401,6 +413,64 @@ class TableProxy(StatementGeneratorMixin):
                     "Unknown parse for sql type %s" % col[1])
 
         return ColumnProxyContainer(cols)
+
+    def addColumn(self, columnFmt: list[str], encloseTableName: bool = True):
+        """
+        Alters the table by adding a new column.
+
+        Parameters
+        ----------
+        columnFmt : list[str]
+            Format of the column as list of
+            [columnName, columnTypeHint], e.g.
+            ['mycol', 'INTEGER']
+
+        encloseTableName : bool, optional
+            Encloses the table name in quotes to allow
+            for certain table names which may fail;
+            for example, this is necessary if the
+            table name starts with digits.
+            The default is True.
+
+        Returns
+        -------
+        stmt : str
+            The actual sqlite statement that was executed.
+        """
+        stmt = StatementGeneratorMixin._makeAlterTableAddColumnStatement(
+            self._tbl, columnFmt, encloseTableName
+        )
+        self._parent.cur.execute(stmt)
+        self._reloadFmt()
+        return stmt
+
+    def dropColumn(self, columnName: str, encloseTableName: bool = True):
+        """
+        Alters the table by dropping a column.
+
+        Parameters
+        ----------
+        columnName : str
+            Name of the column.
+
+        encloseTableName : bool, optional
+            Encloses the table name in quotes to allow
+            for certain table names which may fail;
+            for example, this is necessary if the
+            table name starts with digits.
+            The default is True.
+
+        Returns
+        -------
+        stmt : str
+            The actual sqlite statement that was executed.
+        """
+        stmt = StatementGeneratorMixin._makeAlterTableDropColumnStatement(
+            self._tbl, columnName, encloseTableName
+        )
+        self._parent.cur.execute(stmt)
+        self._reloadFmt()
+        return stmt
 
     def __getitem__(self, i: slice):
         # For now, we don't have a built-in generator for limits and offsets
@@ -489,9 +559,9 @@ class TableProxy(StatementGeneratorMixin):
                 "justThisColumn asc"
 
         encloseTableName : bool, optional
-            Encloses the table name in quotes to allow 
+            Encloses the table name in quotes to allow
             for certain table names which may fail;
-            for example, this is necessary if the 
+            for example, this is necessary if the
             table name starts with digits.
             The default is True.
 

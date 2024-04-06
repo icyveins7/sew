@@ -5,7 +5,9 @@ import unittest
 import sqlite3 as sq
 import numpy as np
 
-#%%
+# %%
+
+
 class TestCorrectness(unittest.TestCase):
     def setUp(self):
         self.d = sew.Database(":memory:")
@@ -23,7 +25,7 @@ class TestCorrectness(unittest.TestCase):
         )
         # self.d.reloadTables()
 
-    #%%
+    # %%
     def test_create_table_insert_drop(self):
         fmtspec = sew.FormatSpecifier()
         fmtspec.addColumn('c1', int)
@@ -43,17 +45,46 @@ class TestCorrectness(unittest.TestCase):
         self.d.dropTable('tbl')
         self.assertNotIn("tbl", self.d.tables)
 
+    def test_create_table_then_alter(self):
+        fmtspec = sew.FormatSpecifier()
+        fmtspec.addColumn('c1', int)
+        fmtspec.addColumn('c2', float)
+        self.d.createTable(fmtspec.generate(),
+                           'tbl')
+        self.d['tbl'].addColumn(['c3', 'text'])
+        columns = self.d['tbl'].columns
+        print(columns)
+        # In order, check them
+        self.assertEqual(columns[0].typehint, int)
+        self.assertEqual(columns[0].name, 'c1')
 
-    #%%
+        self.assertEqual(columns[1].typehint, float)
+        self.assertEqual(columns[1].name, 'c2')
+
+        # And check the newly added one
+        self.assertEqual(columns[2].typehint, str)
+        self.assertEqual(columns[2].name, 'c3')
+
+        # Now drop one of the columns
+        self.d['tbl'].dropColumn('c1')
+        # And check again..
+        self.assertEqual(columns[0].typehint, float)
+        self.assertEqual(columns[0].name, 'c2')
+
+        self.assertEqual(columns[1].typehint, str)
+        self.assertEqual(columns[1].name, 'c3')
+
+    # %%
+
     def test_formatSpecifier_getter(self):
         self.assertEqual(
             self.fmtspec.generate(),
             self.d["correctness"].formatSpecifier
         )
 
-    #%%
+    # %%
     def test_insert_simple_and_delete(self):
-        rows = [(10.0, 20.0, 30.0), (30.0,40.0,50.0)]
+        rows = [(10.0, 20.0, 30.0), (30.0, 40.0, 50.0)]
         self.d['correctness'].insertMany(
             rows, commitNow=True
         )
@@ -66,7 +97,7 @@ class TestCorrectness(unittest.TestCase):
 
         # Delete one of the rows
         self.d["correctness"].delete(
-            ["col2=20.0"], commitNow=True # This should remove one of the rows
+            ["col2=20.0"], commitNow=True  # This should remove one of the rows
         )
         # Check again
         self.d["correctness"].select("*")
@@ -75,10 +106,9 @@ class TestCorrectness(unittest.TestCase):
         self.assertEqual(results[0][0], rows[1][0])
         self.assertEqual(results[0][1], rows[1][1])
         self.assertEqual(results[0][2], rows[1][2])
-        
 
+    # %%
 
-    #%%
     def test_insert_generators(self):
         data1 = np.array([10.0, 30.0])
         data2 = np.array([30.0, 40.0])
@@ -95,8 +125,8 @@ class TestCorrectness(unittest.TestCase):
             self.assertEqual(data2[i], result[1])
             self.assertEqual(data3[i], result[2])
 
+    # %%
 
-    #%%
     def test_create_metadata(self):
         # First check that it throws if tablename or columns are wrong
         metaFmtspec = sew.FormatSpecifier(
@@ -177,20 +207,22 @@ class TestCorrectness(unittest.TestCase):
             sew.DataTableProxy
         )
 
-    #%%
+    # %%
     def test_redirect(self):
         self.assertEqual(
             self.d.cur.execute, self.d.execute,
             "execute redirect has failed")
 
-    #%%
+    # %%
     def test_makeSelectStatement(self):
         tablename = "tablename"
         columnNames = ["col1", "col2"]
         conditions = ["col1 > ?", "col2 > ?"]
         orderBy = "col1 desc"
-        stmt1 = self.d._makeSelectStatement(columnNames, tablename, encloseTableName=False)
-        stmt2 = self.d._makeSelectStatement(columnNames, tablename, conditions, orderBy, encloseTableName=False)
+        stmt1 = self.d._makeSelectStatement(
+            columnNames, tablename, encloseTableName=False)
+        stmt2 = self.d._makeSelectStatement(
+            columnNames, tablename, conditions, orderBy, encloseTableName=False)
         self.assertEqual(
             stmt1, "select col1,col2 from tablename",
             "select statement is incorrect"
@@ -200,15 +232,15 @@ class TestCorrectness(unittest.TestCase):
             "select statement with conditions and ordering is incorrect"
         )
 
-    #%%
+    # %%
     def test_uniqueness_throws(self):
         with self.assertRaises(sq.IntegrityError):
             self.d['correctness'].insertMany(
-                [(0,1,2),(0,1,2)],
+                [(0, 1, 2), (0, 1, 2)],
                 orReplace=False
             )
 
-    #%%
+    # %%
     def test_insert_requires_all_columns(self):
         with self.assertRaises(sq.ProgrammingError):
             self.d['correctness'].insertMany(
@@ -220,12 +252,12 @@ class TestCorrectness(unittest.TestCase):
                 0.
             )
 
-    #%%
+    # %%
     def test_insertOne_throws_if_enclosed(self):
         with self.assertRaises(TypeError):
             self.d['correctness'].insertOne((10.0, 20.0, 30.0))
 
-    #%%
+    # %%
     def test_insert_namedcolumns(self):
         stmt = self.d['correctness'].insertOne(
             {
@@ -241,10 +273,10 @@ class TestCorrectness(unittest.TestCase):
         self.assertEqual(result['col2'], None)
         self.assertEqual(result['col3'], 44.0)
 
-    #%%
+    # %%
     def test_makeCaseStatements(self):
         singlecase = self.d._makeCaseSingleConditionVariable(
-            'col1', 
+            'col1',
             [
                 ['5', 'NULL'],
                 ['10', '20']
@@ -272,8 +304,8 @@ class TestCorrectness(unittest.TestCase):
             "END"
         self.assertEqual(multiplecase, checkmultiplecase)
 
+    # %%
 
-    #%%
     def test_insertMany_namedcolumns(self):
         dictlist = [
             {'col1': 22.0, 'col3': 44.0},
@@ -291,17 +323,18 @@ class TestCorrectness(unittest.TestCase):
             self.assertEqual(result['col2'], None)
             self.assertEqual(result['col3'], dictlist[i]['col3'])
 
-    #%%
+    # %%
     def test_createView(self):
         # Create a view with renames and amendments within select
         self.d['correctness'].createView(
-            ["col1 as A", "(col2+10) as B"], # Warp the column value in the view too
+            # Warp the column value in the view too
+            ["col1 as A", "(col2+10) as B"],
         )
         # Reload to see the new view
         self.d.reloadTables()
 
         # Insert some data
-        data = [(10.0, 20.0, 30.0), (30.0,40.0,50.0)]
+        data = [(10.0, 20.0, 30.0), (30.0, 40.0, 50.0)]
         self.d['correctness'].insertMany(
             data
         )
@@ -316,10 +349,10 @@ class TestCorrectness(unittest.TestCase):
                 result['A'], data[i][0]
             )
             self.assertEqual(
-                result['B'], data[i][1] + 10 # Check the warped value
+                result['B'], data[i][1] + 10  # Check the warped value
             )
 
-    #%%
+    # %%
     def test_numeric_affinity(self):
         # Create a new table with NUMERIC affinity
         tblfmt = sew.FormatSpecifier(
@@ -344,7 +377,7 @@ class TestCorrectness(unittest.TestCase):
         for i, result in enumerate(results):
             self.assertEqual(result['col1'], data[i][0])
 
-    #%%
+    # %%
     def test_basic_foreignkey(self):
         # Create a parent table
         parentfmt = sew.FormatSpecifier(
@@ -371,7 +404,7 @@ class TestCorrectness(unittest.TestCase):
 
         # Insert into parent
         self.d["parent"].insertMany(
-            [(1,2),(2,4)], commitNow=True
+            [(1, 2), (2, 4)], commitNow=True
         )
         # Show that inserting into child fails if you don't use null
         with self.assertRaises(sq.IntegrityError):
@@ -405,7 +438,7 @@ class TestCorrectness(unittest.TestCase):
         self.d.execute(stmt)
         self.d.commit()
 
-    #%%
+    # %%
     def test_foreignkey_parent_retrieval(self):
         # Create a parent table
         parentfmt = sew.FormatSpecifier(
@@ -432,7 +465,7 @@ class TestCorrectness(unittest.TestCase):
 
         # Insert multiple rows into parent
         self.d["parent"].insertMany(
-            [(1,2),(2,3)], commitNow=True
+            [(1, 2), (2, 3)], commitNow=True
         )
 
         # Check parent results
@@ -452,13 +485,13 @@ class TestCorrectness(unittest.TestCase):
         # Retrieve an associated parent row
         self.d["child"].retrieveParentRow(result)
         parentResults = self.d.fetchall()
-        for result in parentResults: # There should be only 1 result anyway
+        for result in parentResults:  # There should be only 1 result anyway
             self.assertEqual(result['id'], 1)
             self.assertEqual(result['val'], 2)
 
-    #%%
+    # %%
     def test_multiple_foreignkeys(self):
-         # Create a parent table
+        # Create a parent table
         parentfmt = sew.FormatSpecifier(
             [
                 ["id", "INTEGER PRIMARY KEY"],
@@ -494,10 +527,10 @@ class TestCorrectness(unittest.TestCase):
 
         # Insert into both parents
         self.d["parent"].insertMany(
-            [(1,2),(2,3)], commitNow=True
+            [(1, 2), (2, 3)], commitNow=True
         )
         self.d["otherparent"].insertMany(
-            [(4,8),(5,10)], commitNow=True
+            [(4, 8), (5, 10)], commitNow=True
         )
 
         # Then insert into the child
@@ -512,17 +545,17 @@ class TestCorrectness(unittest.TestCase):
         # Extract the related parents
         self.d["child"].retrieveParentRow(childResult, "col2")
         parentResults = self.d.fetchall()
-        for result in parentResults: # There should be only 1 result anyway
+        for result in parentResults:  # There should be only 1 result anyway
             self.assertEqual(result['id'], 1)
             self.assertEqual(result['val'], 2)
 
         self.d["child"].retrieveParentRow(childResult, "col3")
         otherparentResults = self.d.fetchall()
-        for result in otherparentResults: # There should be only 1 result anyway
+        for result in otherparentResults:  # There should be only 1 result anyway
             self.assertEqual(result['id'], 4)
             self.assertEqual(result['val'], 8)
 
-    #%%
+    # %%
     def test_foreignkey_relationships(self):
         # Create a bunch of parent tables
         parentfmt = sew.FormatSpecifier(
@@ -589,10 +622,10 @@ class TestCorrectness(unittest.TestCase):
             ("child23", "col1") in families[("parent3", "id")]
         )
 
-    #%%
+    # %%
     def test_table_bracket_access(self):
         self.d['correctness'].insertMany(
-            [(i,i+1,i+2) for i in range(10)], commitNow=True
+            [(i, i+1, i+2) for i in range(10)], commitNow=True
         )
 
         # Test a single row
@@ -621,21 +654,20 @@ class TestCorrectness(unittest.TestCase):
 
 
 def test_context_manager(self):
-        # Show that default sqlite3 doesn't close the database
-        with sq.connect(":memory:") as sqdb:
-            sqcur = sqdb.cursor()
-        sqcur.execute("create table x(c1 INT)")
+    # Show that default sqlite3 doesn't close the database
+    with sq.connect(":memory:") as sqdb:
+        sqcur = sqdb.cursor()
+    sqcur.execute("create table x(c1 INT)")
 
-        # Then show that sew database does throw
-        with sew.Database(":memory:") as db:
-            cur = db.con.cursor()
-        # Extracting a cursor manually
-        with self.assertRaises(sq.ProgrammingError):
-            cur.execute('create table x(c1 INT)')
-        # Using our in-built executors
-        with self.assertRaises(sq.ProgrammingError):
-            db.execute('create table x(c1 INT)')
-
+    # Then show that sew database does throw
+    with sew.Database(":memory:") as db:
+        cur = db.con.cursor()
+    # Extracting a cursor manually
+    with self.assertRaises(sq.ProgrammingError):
+        cur.execute('create table x(c1 INT)')
+    # Using our in-built executors
+    with self.assertRaises(sq.ProgrammingError):
+        db.execute('create table x(c1 INT)')
 
 
 if __name__ == "__main__":
