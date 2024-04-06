@@ -57,6 +57,15 @@ class SqliteContainer:
         '''
         self.con.close()
 
+    def cursor(self) -> sq.Cursor:
+        """
+        Returns a new cursor for the sqlite3 connection.
+        You usually don't need to do this explicitly, unless
+        you need a second cursor to iterate over while maintaining
+        the executed statement on the in-built cursor.
+        """
+        return self.con.cursor()
+
 # %% Mixin to redirect common sqlite methods for brevity in code later
 
 
@@ -320,6 +329,43 @@ class StatementGeneratorMixin:
             StatementGeneratorMixin._encloseTableName(
                 tablename) if encloseTableName else tablename,
             StatementGeneratorMixin._stitchConditions(conditions)
+        )
+        return stmt
+
+    @staticmethod
+    def _makeAlterTableSubStatement(
+        tablename: str,
+        encloseTableName: bool = True
+    ):
+        stmt = "alter table %s" % (
+            StatementGeneratorMixin._encloseTableName(
+                tablename) if encloseTableName else tablename)
+        return stmt
+
+    @staticmethod
+    def _makeAlterTableAddColumnStatement(
+        tablename: str,
+        columnFmt: list[str],
+        encloseTableName: bool = True
+    ):
+        stmt = "%s add column %s %s" % (
+            StatementGeneratorMixin._makeAlterTableSubStatement(
+                tablename, encloseTableName),
+            columnFmt[0],
+            columnFmt[1]
+        )
+        return stmt
+
+    @staticmethod
+    def _makeAlterTableDropColumnStatement(
+        tablename: str,
+        columnFmt: list[str],
+        encloseTableName: bool = True
+    ):
+        stmt = "%s drop column %s" % (
+            StatementGeneratorMixin._makeAlterTableSubStatement(
+                tablename, encloseTableName),
+            columnFmt[0]
         )
         return stmt
 

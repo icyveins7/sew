@@ -11,14 +11,34 @@ and the FormatSpecifier parsers, since these are linked to the internal
 structure we keep.
 '''
 
-#%%
+
 class TestStatements(unittest.TestCase):
+
+    def test_makeAlterTableStatements(self):
+        # Check ADD COLUMN
+        stmt = sew.StatementGeneratorMixin._makeAlterTableAddColumnStatement(
+            "mytbl", ['col1', 'int']
+        )
+        self.assertEqual(
+            stmt,
+            'alter table "mytbl" add column col1 int'
+        )
+
+        # Check DROP COLUMN
+        stmt = sew.StatementGeneratorMixin._makeAlterTableDropColumnStatement(
+            "mytbl", ['col1', 'real'],  # type doesn't matter here
+            encloseTableName=False
+        )
+        self.assertEqual(
+            stmt,
+            "alter table mytbl drop column col1"
+        )
 
     # Test the column description parser for extracted sql
     # This is one of the most basic extractions of the create table statement
     def test_col_desc_parse(self):
         # Parse a single column description
-        desc = ' col1 INTEGER   ' # Add some blanks
+        desc = ' col1 INTEGER   '  # Add some blanks
         self.assertEqual(
             sew.FormatSpecifier._parseColumnDesc(desc),
             ['col1', 'INTEGER']
@@ -36,11 +56,11 @@ class TestStatements(unittest.TestCase):
             ['col1', 'INTEGER PRIMARY KEY']
         )
 
-
     # Test the create table splitter
+
     def test_table_sql_splitter(self):
         # Make something simple
-        desc = ' col1 INTEGER, col2, col3 real  ' # With some blanks
+        desc = ' col1 INTEGER, col2, col3 real  '  # With some blanks
         cols, conds, fks = sew.FormatSpecifier._splitColumnsSql(desc)
         self.assertEqual(
             cols,
@@ -80,7 +100,7 @@ class TestStatements(unittest.TestCase):
         )
 
         # Make something with uniques and foreign keys
-        desc ='col1 INTEGER, col2, col3 real, UNIQUE(col1, col2), FOREIGN KEY(col1) REFERENCES parent_table(parentcolA)  '
+        desc = 'col1 INTEGER, col2, col3 real, UNIQUE(col1, col2), FOREIGN KEY(col1) REFERENCES parent_table(parentcolA)  '
         cols, conds, fks = sew.FormatSpecifier._splitColumnsSql(desc)
         self.assertEqual(
             cols,
@@ -135,8 +155,5 @@ class TestStatements(unittest.TestCase):
         )
 
 
-
-
 if __name__ == "__main__":
     unittest.main()
-
