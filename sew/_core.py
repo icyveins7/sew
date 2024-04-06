@@ -159,10 +159,15 @@ class StatementGeneratorMixin:
         return conditionsStr
 
     @staticmethod
-    def _makeCaseSingleConditionVariable(conditionVariable: str, whenthens: list, finalElse: str):
+    def _makeCaseSingleConditionVariable(
+        conditionVariable: str,
+        whenthens: list,
+        finalElse: str
+    ):
         """
         Used to generate a case statement for a single condition variable.
-        By SQLite definitions, this can only test for multiple equality conditions, comparing the condition variable.
+        By SQLite definitions, this can only test for multiple
+        equality conditions, comparing the condition variable.
 
         This is usually paired with an "AS somenewcolumn".
 
@@ -176,17 +181,22 @@ class StatementGeneratorMixin:
         Parameters
         ----------
         conditionVariable : str
-            Single string specifying the condition variable (does not need to be a column by itself).
+            Single string specifying the condition variable
+            (does not need to be a column by itself).
 
         whenthens : list
             List of sublists of length 2: the first contains the WHEN substring
             and the second contains the THEN substring i.e.
-            the first substring evaluates the equality of the condition variable,
-            and the second substring will be the result if the equality evaluates to true.
-            For this method, the first substring should only be a simple value for comparison.
+            the first substring evaluates the equality
+            of the condition variable,
+            and the second substring will be the result
+            if the equality evaluates to true.
+            For this method, the first substring should only
+            be a simple value for comparison.
 
         finalElse : str
-            The final ELSE statement i.e. the value of the output column if no WHEN/THEN
+            The final ELSE statement i.e. the value of the
+            output column if no WHEN/THEN
             conditions evaluate to true.
         """
         # Stitch together the when/then sub statements
@@ -202,8 +212,8 @@ class StatementGeneratorMixin:
     def _makeCaseMultipleConditionVariables(whenthens: list, finalElse: str):
         """
         Used to generate a case statement for multiple condition variables.
-        In this structure, every condition variable can be unique, and more general comparisons can
-        be done like <, > etc.
+        In this structure, every condition variable can be unique,
+        and more general comparisons can be done like <, > etc.
 
         This is usually paired with an "AS somenewcolumn".
 
@@ -220,13 +230,18 @@ class StatementGeneratorMixin:
         whenthens : list
             List of sublists of length 2: the first contains the WHEN substring
             and the second contains the THEN substring i.e.
-            the first substring evaluates the equality of the condition variable,
-            and the second substring will be the result if the equality evaluates to true.
-            For this method, the first substring can have more complicated expressions,
-            which may involve not just equality comparisons and also involve multiple columns.
+            the first substring evaluates the equality
+            of the condition variable,
+            and the second substring will be the result
+            if the equality evaluates to true.
+            For this method, the first substring can have
+            more complicated expressions,
+            which may involve not just equality comparisons
+            and also involve multiple columns.
 
         finalElse : str
-            The final ELSE statement i.e. the value of the output column if no WHEN/THEN
+            The final ELSE statement i.e. the value of the
+            output column if no WHEN/THEN
             conditions evaluate to true.
         """
         # Stitch together the when/then sub statements
@@ -248,7 +263,8 @@ class StatementGeneratorMixin:
             columnNames, list) else columnNames
         # Parse conditions with additional where keyword
         conditions = StatementGeneratorMixin._stitchConditions(conditions)
-        # Parse order by as comma separated string and pad the order by keywords
+        # Parse order by as comma separated string
+        # and pad the order by keywords
         orderBy = [orderBy] if isinstance(orderBy, str) else orderBy
         orderBy = ' order by %s' % (
             ','.join(orderBy)) if isinstance(orderBy, list) else ''
@@ -264,7 +280,8 @@ class StatementGeneratorMixin:
 
     @staticmethod
     def _makeInsertStatement(
-        tablename: str, fmt: dict, orReplace: bool = False, encloseTableName: bool = True
+        tablename: str, fmt: dict,
+        orReplace: bool = False, encloseTableName: bool = True
     ):
         stmt = "insert%s into %s values(%s)" % (
             " or replace" if orReplace else '',
@@ -276,7 +293,8 @@ class StatementGeneratorMixin:
 
     @staticmethod
     def _makeInsertStatementWithNamedColumns(
-        tablename: str, insertedColumns: list, orReplace: bool = False, encloseTableName: bool = True
+        tablename: str, insertedColumns: list,
+        orReplace: bool = False, encloseTableName: bool = True
     ):
         stmt = "insert%s into %s(%s) values(%s)" % (
             " or replace" if orReplace else '',
@@ -294,7 +312,10 @@ class StatementGeneratorMixin:
 
     @staticmethod
     def _makeDeleteStatement(
-            tablename: str, conditions: list = None, encloseTableName: bool = True):
+        tablename: str,
+        conditions: list = None,
+        encloseTableName: bool = True
+    ):
         stmt = "delete from %s%s" % (
             StatementGeneratorMixin._encloseTableName(
                 tablename) if encloseTableName else tablename,
@@ -316,7 +337,7 @@ class TableProxy(StatementGeneratorMixin):
         # typehints =
         for col in self._fmt['cols']:
             colname = col[0]
-            # Parse the type (note that we cannot determine the upper/lowercase)
+            # Parse the type (note that we cannot determine upper/lowercase)
             # All the versions have the substring 'int', so this works
             if re.match(r"int", col[1], flags=re.IGNORECASE):
                 cols.append(ColumnProxy(colname, int, self._tbl))
@@ -397,7 +418,8 @@ class TableProxy(StatementGeneratorMixin):
         Parameters
         ----------
         columnNames : list
-            List of columns to extract. A single column may be specified as a string.
+            List of columns to extract. 
+            A single column may be specified as a string.
             If all columns are desired, the string "*" may be specified.
             Examples:
                 ["col1", "col3"]
@@ -421,8 +443,10 @@ class TableProxy(StatementGeneratorMixin):
                 "justThisColumn asc"
 
         encloseTableName : bool, optional
-            Encloses the table name in quotes to allow for certain table names which may fail;
-            for example, this is necessary if the table name starts with digits.
+            Encloses the table name in quotes to allow 
+            for certain table names which may fail;
+            for example, this is necessary if the 
+            table name starts with digits.
             The default is True.
 
         Returns
@@ -448,7 +472,8 @@ class TableProxy(StatementGeneratorMixin):
                ):
         """
         Performs a delete statement on the current table.
-        This does not have a LIMIT so all rows that fulfill the condition will be deleted.
+        This does not have a LIMIT so all rows
+        that fulfill the condition will be deleted.
 
         Parameters
         ----------
@@ -457,12 +482,15 @@ class TableProxy(StatementGeneratorMixin):
             A single condition may be specified as a string.
 
         commitNow : bool, optional
-            Calls commit on the database connection after the transaction if True. 
+            Calls commit on the database connection
+            after the transaction if True.
             The default is False.
 
         encloseTableName : bool, optional
-            Encloses the table name in quotes to allow for certain table names which may fail;
-            for example, this is necessary if the table name starts with digits.
+            Encloses the table name in quotes to
+            allow for certain table names which may fail;
+            for example, this is necessary if
+            the table name starts with digits.
             The default is True.
         """
 
@@ -489,13 +517,14 @@ class TableProxy(StatementGeneratorMixin):
             An iterable of the data for the row to be inserted.
             No need to place the arguments in a tuple,
             simply place them one after another before the keyword args.
-            In this mode, all columns must have a value inserted 
+            In this mode, all columns must have a value inserted
             (see dict insertion below if you have missing values).
             Example:
                 Two REAL columns
                 insertOne(10.0, 20.0)
 
-            Can also use a dictionary to used the named column format for insertion.
+            Can also use a dictionary to used the named
+            column format for insertion.
             Missing columns will have NULLs inserted as per sqlite's norm.
             Example:
                 # Columns are ['col1','col2','col3']
@@ -512,12 +541,15 @@ class TableProxy(StatementGeneratorMixin):
             The default is False.
 
         commitNow : bool, optional
-            Calls commit on the database connection after the transaction if True. 
+            Calls commit on the database connection
+            after the transaction if True.
             The default is False.
 
         encloseTableName : bool, optional
-            Encloses the table name in quotes to allow for certain table names which may fail;
-            for example, this is necessary if the table name starts with digits.
+            Encloses the table name in quotes to
+            allow for certain table names which may fail;
+            for example, this is necessary if
+            the table name starts with digits.
             The default is True.
 
         Returns
@@ -559,12 +591,16 @@ class TableProxy(StatementGeneratorMixin):
         Parameters
         ----------
         rows : iterable or generator expression
-            An iterable or generator expression of the data of multiple rows. 
-            It is assumed implicitly that every column has a value inserted i.e.
-            no missing columns. 
+            An iterable or generator expression of
+            the data of multiple rows.
+            It is assumed implicitly that every
+            column has a value inserted i.e.
+            no missing columns.
 
-            Dictionary mode insertion like in insertOne() is not supported as the
-            statement would mutate on every row. See insertManyNamedColumns() for such use-cases.
+            Dictionary mode insertion like in
+            insertOne() is not supported as the
+            statement would mutate on every row.
+            See insertManyNamedColumns() for such use-cases.
             See sqlite3.executemany() for more information.
 
             Example with list of tuples/lists:
@@ -578,16 +614,20 @@ class TableProxy(StatementGeneratorMixin):
                 )
 
         orReplace : bool, optional
-            Overwrites the same data if True, otherwise a new row is created for every clash.
+            Overwrites the same data if True,
+            otherwise a new row is created for every clash.
             The default is False.
 
         commitNow : bool, optional
-            Calls commit on the database connection after the transaction if True. 
+            Calls commit on the database connection
+            after the transaction if True.
             The default is False.
 
         encloseTableName : bool, optional
-            Encloses the table name in quotes to allow for certain table names which may fail;
-            for example, this is necessary if the table name starts with digits.
+            Encloses the table name in quotes
+            to allow for certain table names which may fail;
+            for example, this is necessary
+            if the table name starts with digits.
             The default is True.
 
         Returns
@@ -612,13 +652,15 @@ class TableProxy(StatementGeneratorMixin):
                                encloseTableName: bool = True):
         '''
         Performs an insert statement for multiple rows of data.
-        This method assumes that every row inserts the same set of named columns.
+        This method assumes that every row
+        inserts the same set of named columns.
 
         Parameters
         ----------
         dictlist : list of dictionaries
             List of dictionaries where the keys are the columns being inserted.
-            Each row corresponds to a dictionary. Missing columns will have NULLs inserted as per sqlite's norm.
+            Each row corresponds to a dictionary.
+            Missing columns will have NULLs inserted as per sqlite's norm.
             Example:
                 # Rows are ['A','B','C']
                 dictlist = [
@@ -628,16 +670,20 @@ class TableProxy(StatementGeneratorMixin):
                 insertManyNamedColumns(dictlist)
 
         orReplace : bool, optional
-            Overwrites the same data if True, otherwise a new row is created for every clash.
+            Overwrites the same data if True,
+            otherwise a new row is created for every clash.
             The default is False.
 
         commitNow : bool, optional
-            Calls commit on the database connection after the transaction if True.
+            Calls commit on the database connection
+            after the transaction if True.
             The default is False.
 
         encloseTableName : bool, optional
-            Encloses the table name in quotes to allow for certain table names which may fail;
-            for example, this is necessary if the table name starts with digits.
+            Encloses the table name in quotes to
+            allow for certain table names which may fail;
+            for example, this is necessary if
+            the table name starts with digits.
             The default is True.
 
         Returns
@@ -686,15 +732,18 @@ class TableProxy(StatementGeneratorMixin):
         orderBy : list, optional
             Ordering of the select. See select(). By default None.
         viewtbl_name : str, optional
-            The view's name, akin to a table name. Defaults to the current table with '_view' appended.
+            The view's name, akin to a table name.
+            Defaults to the current table with '_view' appended.
         ifNotExists : bool, optional
             Prevents creation if the view already exists. The default is False.
         encloseTableName : bool, optional
-            Encloses the view name in quotes to allow for certain view names which may fail;
+            Encloses the view name in quotes
+            to allow for certain view names which may fail;
             for example, this is necessary if the view name starts with digits.
             The default is True.
         commitNow : bool, optional
-            Calls commit on the database connection after the transaction if True.
+            Calls commit on the database connection
+            after the transaction if True.
             The default is False.
 
         Returns
@@ -731,8 +780,10 @@ class TableProxy(StatementGeneratorMixin):
     # Foreign-key specific methods
     def retrieveParentRow(self, row: sq.Row, foreignKey: str = None):
         """
-        Performs a select on the associated parent table and row specified by the foreign key
-        in the current child table. You are expected to call the fetch() flavours yourself afterwards.
+        Performs a select on the associated
+        parent table and row specified by the foreign key
+        in the current child table. You are expected to
+        call the fetch() flavours yourself afterwards.
 
         This is equivalent to performing
 
@@ -741,9 +792,11 @@ class TableProxy(StatementGeneratorMixin):
         Parameters
         ----------
         row : sq.Row
-            A row result returned from a select query on this current (child) table.
+            A row result returned from a select
+            query on this current (child) table.
         foreignKey : str, optional
-            The foreign key (column name) whose parent you seek, by default None,
+            The foreign key (column name) whose parent you seek,
+            by default None,
             which just uses the first foreign key in the schema.
 
         Raises
@@ -751,7 +804,8 @@ class TableProxy(StatementGeneratorMixin):
         KeyError
             If foreign key is specified and does not exist.
         """
-        # If no foreign key specified, assume the first foreign key in the schema
+        # If no foreign key specified,
+        # assume the first foreign key in the schema
         if foreignKey is None:
             fk = self._fmt['foreign_keys'][0]
         else:
@@ -904,11 +958,13 @@ class CommonMethodMixin(StatementGeneratorMixin):
 
         Returns
         -------
-        results : 
+        results :
             Sqlite results from fetchall(). This is usually used for debugging.
         '''
-        stmt = self._makeSelectStatement(["name", "sql", "type"], "sqlite_master",
-                                         conditions=["type='table' or type='view'"])
+        stmt = self._makeSelectStatement(
+            ["name", "sql", "type"], "sqlite_master",
+            conditions=["type='table' or type='view'"]
+        )
         self.cur.execute(stmt)
         results = self.cur.fetchall()
         self._tables.clear()
@@ -921,7 +977,8 @@ class CommonMethodMixin(StatementGeneratorMixin):
             # Merge into dataToMeta
             dataToMeta.update(newDtm)
 
-        # Iterate over all the tables to upgrade them to data tables if they exist
+        # Iterate over all the tables to upgrade
+        # them to data tables if they exist
         for table in self._tables:
             if table in dataToMeta.keys():
                 self._parseDataTable(
@@ -947,19 +1004,25 @@ class CommonMethodMixin(StatementGeneratorMixin):
         Parameters
         ----------
         fmt : dict
-            Dictionary of column names/types and special conditions that characterises the table.
-            The easiest way to generate this is to instantiate a FormatSpecifier object and then use
+            Dictionary of column names/types and
+            special conditions that characterises the table.
+            The easiest way to generate this is to
+            instantiate a FormatSpecifier object and then use
             generate() to create this.
         tablename : str
             The table name.
         ifNotExists : bool, optional
-            Prevents creation if the table already exists. The default is False.
+            Prevents creation if the table already exists.
+            The default is False.
         encloseTableName : bool, optional
-            Encloses the table name in quotes to allow for certain table names which may fail;
-            for example, this is necessary if the table name starts with digits.
+            Encloses the table name in quotes to allow
+            for certain table names which may fail;
+            for example, this is necessary if the
+            table name starts with digits.
             The default is True.
         commitNow : bool, optional
-            Calls commit on the database connection after the transaction if True. 
+            Calls commit on the database connection
+            after the transaction if True. 
             The default is False.
         '''
         stmt = self._makeCreateTableStatement(
@@ -984,20 +1047,27 @@ class CommonMethodMixin(StatementGeneratorMixin):
         Parameters
         ----------
         fmt : dict
-            Dictionary of column names/types and special conditions that characterises the table.
-            The easiest way to generate this is to instantiate a FormatSpecifier object and then use
+            Dictionary of column names/types and special
+            conditions that characterises the table.
+            The easiest way to generate this is to
+            instantiate a FormatSpecifier object and then use
             generate() to create this.
-            Metadata tables are expected to have the first column designated as 'data_tblname TEXT'.
+            Metadata tables are expected to have the
+            first column designated as 'data_tblname TEXT'.
         tablename : str
             The table name.
         ifNotExists : bool, optional
-            Prevents creation if the table already exists. The default is False.
+            Prevents creation if the table already exists.
+            The default is False.
         encloseTableName : bool, optional
-            Encloses the table name in quotes to allow for certain table names which may fail;
-            for example, this is necessary if the table name starts with digits.
+            Encloses the table name in quotes to allow
+            for certain table names which may fail;
+            for example, this is necessary if the
+            table name starts with digits.
             The default is True.
         commitNow : bool, optional
-            Calls commit on the database connection after the transaction if True. 
+            Calls commit on the database connection
+            after the transaction if True.
             The default is False.
         '''
 
@@ -1006,7 +1076,9 @@ class CommonMethodMixin(StatementGeneratorMixin):
             raise ValueError("Metadata table %s must end with %s" % (
                 tablename, MetaTableProxy.requiredTableSuffix))
 
-        if not FormatSpecifier.dictContainsColumn(fmt, MetaTableProxy.requiredColumn):
+        if not FormatSpecifier.dictContainsColumn(
+            fmt, MetaTableProxy.requiredColumn
+        ):
             raise ValueError("Metadata table %s must contain the column %s" % (
                 tablename, MetaTableProxy.requiredColumn))
 
@@ -1030,36 +1102,45 @@ class CommonMethodMixin(StatementGeneratorMixin):
                         encloseTableName: bool = True,
                         commitNow: bool = False):
         '''
-        Creates a new data table. This table will be intrinsically linked to a row in the associated metadata table.
+        Creates a new data table.
+        This table will be intrinsically linked
+        to a row in the associated metadata table.
 
         Parameters
         ----------
         fmt : dict
-            Dictionary of column names/types and special conditions that characterises the table.
-            The easiest way to generate this is to instantiate a FormatSpecifier object and then use
+            Dictionary of column names/types and
+            special conditions that characterises the table.
+            The easiest way to generate this is to
+            instantiate a FormatSpecifier object and then use
             generate() to create this.
         tablename : str
             The table name.
         metadata : list
-            The metadata to insert into the metadata table associated with this data table.
+            The metadata to insert into the metadata
+            table associated with this data table.
         metatablename : str
             The metadata table name.
         metaOrReplace : bool, optional
             Whether to use orReplace when inserting into the metadata table.
             Useful when the metadata table has UNIQUE constraints.
         ifNotExists : bool, optional
-            Prevents creation if the table already exists. The default is False.
+            Prevents creation if the table already exists.
+            The default is False.
         encloseTableName : bool, optional
-            Encloses the table name in quotes to allow for certain table names which may fail;
-            for example, this is necessary if the table name starts with digits.
+            Encloses the table name in quotes to allow
+            for certain table names which may fail;
+            for example, this is necessary if the
+            table name starts with digits.
             The default is True.
         commitNow : bool, optional
-            Calls commit on the database connection after the transaction if True. 
+            Calls commit on the database connection
+            after the transaction if True.
             The default is False.
         '''
 
         # Check if the meta table exists
-        if not metatablename in self._tables.keys():
+        if metatablename not in self._tables.keys():
             raise ValueError(
                 "Metadata table %s does not exist!" % metatablename)
 
@@ -1094,7 +1175,8 @@ class CommonMethodMixin(StatementGeneratorMixin):
         tablename : str
             The table name.
         commitNow : bool, optional
-            Calls commit on the database connection after the transaction if True. 
+            Calls commit on the database connection
+            after the transaction if True.
             The default is False.
         '''
         self.cur.execute(self._makeDropStatement(tablename))
@@ -1136,7 +1218,8 @@ class CommonMethodMixin(StatementGeneratorMixin):
     @property
     def tables(self):
         '''
-        Dictionary of TableProxy objects that can be used individually to do table-specific actions.
+        Dictionary of TableProxy objects that
+        can be used individually to do table-specific actions.
         You may need to call reloadTables() if something is missing.
         '''
         return self._tables
@@ -1157,7 +1240,7 @@ class ViewProxy(TableProxy):
     def columns(self):
         '''
         Dictionary of ColumnProxy objects based on the table columns.
-        Not implemented for 
+        Not implemented for
         '''
         raise NotImplementedError("Invalid for view.")
 
@@ -1169,10 +1252,14 @@ class ViewProxy(TableProxy):
         raise NotImplementedError("Invalid for view.")
 
 
-# %% We have a special subclass for tables that are treated as metadata for other tables
-# These tables contain a data_tblname column, and then all other columns are treated as metadata for it.
-# This is especially useful if a table has a bunch of constant columns, but across tables these columns may have different values
-# i.e. something like a table of processing results for a particular run, but each table used a different config file.
+# %% We have a special subclass for tables
+# that are treated as metadata for other tables
+# These tables contain a data_tblname column,
+# and then all other columns are treated as metadata for it.
+# This is especially useful if a table has a bunch of constant columns,
+# but across tables these columns may have different values
+# i.e. something like a table of processing results for a particular run,
+# but each table used a different config file.
 class MetaTableProxy(TableProxy):
     requiredColumn = 'data_tblname'
     requiredTableSuffix = "_metadata"
@@ -1183,12 +1270,18 @@ class MetaTableProxy(TableProxy):
         # We throw if either created wrongly by user or accidentally internally
         if not self._tbl.endswith(self.requiredTableSuffix):
             raise ValueError(
-                "Metadata tables must end with '_metadata' but %s did not!" % self._tbl)
+                "Metadata tables must end with '_metadata' but %s did not!" % (
+                    self._tbl)
+            )
 
-        # Format must contain 'data_tblname', and all other columns are treated as the actual metadata
-        if not FormatSpecifier.dictContainsColumn(self._fmt, self.requiredColumn):
+        # Format must contain 'data_tblname',
+        # and all other columns are treated as the actual metadata
+        if not FormatSpecifier.dictContainsColumn(
+            self._fmt, self.requiredColumn
+        ):
             raise ValueError(
-                "Format must contain 'data_tblname' as the primary key, but %s did not!" % self._fmt)
+                "Format must contain 'data_tblname' as the primary key"
+                ", but %s did not!" % self._fmt)
 
     def getMetadataFor(self, data_tblname: str):
         '''
@@ -1214,7 +1307,8 @@ class MetaTableProxy(TableProxy):
 
     def getDataTables(self):
         '''
-        Returns a list of all the data tables associated to this metadata table.
+        Returns a list of all the data tables
+        associated to this metadata table.
 
         Returns
         -------
@@ -1226,11 +1320,13 @@ class MetaTableProxy(TableProxy):
         data_tblnames = [row[0] for row in self._parent.cur.fetchall()]
         return data_tblnames
 
-# %% Data tables act exactly like any other table, but keep track of their metadatatable internally
+# %% Data tables act exactly like any other table,
+# but keep track of their metadatatable internally
 
 
 class DataTableProxy(TableProxy):
-    def __init__(self, parent: SqliteContainer, tbl: str, fmt: dict, metadatatable: str = None):
+    def __init__(self, parent: SqliteContainer, tbl: str,
+                 fmt: dict, metadatatable: str = None):
         super().__init__(parent, tbl, fmt)
         self._metadatatable = metadatatable  # Keeps track of metadatatable
 
@@ -1252,7 +1348,8 @@ class DataTableProxy(TableProxy):
         -------
         metadata : sqlite3.Row
             Sqlite row result for the metadata.
-            This will usually contain the current table's name as the first column.
+            This will usually contain the current table's
+            name as the first column.
         '''
         # We access the metadata table through the parent container
         return self._parent[self._metadatatable].getMetadataFor(self._tbl)
