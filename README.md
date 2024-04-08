@@ -180,6 +180,20 @@ d["mytablename"].insertOne(
 )
 ```
 
+## Alter Table
+
+Altering the structure of existing table is also possible:
+
+```python
+d["mytbl"].addColumn(
+    ["newcol1", "INTEGER"]
+) # Adds a new column
+
+d["mytbl"].dropColumn(
+    "unwantedCol"
+) # Drops an existing column
+```
+
 ## Hard Refresh of Internal Tables Structure
 
 ```python
