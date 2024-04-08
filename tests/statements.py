@@ -26,7 +26,7 @@ class TestStatements(unittest.TestCase):
 
         # Check DROP COLUMN
         stmt = sew.StatementGeneratorMixin._makeAlterTableDropColumnStatement(
-            "mytbl", ['col1', 'real'],  # type doesn't matter here
+            "mytbl", 'col1',  # type doesn't matter here
             encloseTableName=False
         )
         self.assertEqual(

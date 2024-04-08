@@ -359,13 +359,13 @@ class StatementGeneratorMixin:
     @staticmethod
     def _makeAlterTableDropColumnStatement(
         tablename: str,
-        columnFmt: list[str],
+        columnName: str,
         encloseTableName: bool = True
     ):
         stmt = "%s drop column %s" % (
             StatementGeneratorMixin._makeAlterTableSubStatement(
                 tablename, encloseTableName),
-            columnFmt[0]
+            columnName
         )
         return stmt
 

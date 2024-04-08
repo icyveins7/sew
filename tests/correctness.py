@@ -53,7 +53,6 @@ class TestCorrectness(unittest.TestCase):
                            'tbl')
         self.d['tbl'].addColumn(['c3', 'text'])
         columns = self.d['tbl'].columns
-        print(columns)
         # In order, check them
         self.assertEqual(columns[0].typehint, int)
         self.assertEqual(columns[0].name, 'c1')
@@ -67,6 +66,7 @@ class TestCorrectness(unittest.TestCase):
 
         # Now drop one of the columns
         self.d['tbl'].dropColumn('c1')
+        columns = self.d['tbl'].columns
         # And check again..
         self.assertEqual(columns[0].typehint, float)
         self.assertEqual(columns[0].name, 'c2')
