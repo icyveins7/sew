@@ -8,29 +8,33 @@ Created on Tue Jan 17 19:33:25 2023
 Run this from the outer sew folder with 'python -m tests'
 """
 
+from .blobs import *
+from .plugins import *
+from .formatSpecifier import *
+from .correctness import *
+from .columns_conditions import *
+from .statements import *
 import unittest
 
 print("Begin tests")
 
 # Import statements unittests
 print("Running statements unittests")
-from .statements import *
 
 # Import columns & conditions unittests
 print("Running columns & conditions unittests")
-from .columns_conditions import *
 
 # Import correctness unittests
 print("Running correctness unittests")
-from .correctness import *
+
+# Import formatSpecifier unittests
+print("Running formatSpecifier unittests")
 
 # Import plugins unittests
 print("Running plugins unittests")
-from .plugins import *
 
 # Import blob unittests
 print("Running blob unittests")
-from .blobs import *
 
 # Run everything
 unittest.main()

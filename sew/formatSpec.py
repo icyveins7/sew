@@ -61,19 +61,41 @@ class FormatSpecifier:
     def __repr__(self):
         return str(self.fmt)
 
+    def __str__(self):
+        return str(self.fmt)
+
+    def __eq__(self, other):
+        return self.fmt == other.fmt
+
+    # Define some convenient getters
+    @property
+    def cols(self):
+        return self.fmt['cols']
+
+    @property
+    def conds(self):
+        return self.fmt['conds']
+
+    @property
+    def foreign_keys(self):
+        return self.fmt['foreign_keys']
+
     def clear(self):
         self.fmt = {'cols': [], 'conds': [], 'foreign_keys': []}
 
     def _getColumnNames(self):
         return [i[0] for i in self.fmt['cols']]
 
-    def addColumn(self, columnName: str, typehint: type):
-        self.fmt['cols'].append([columnName, self.sqliteTypes[typehint]])
+    def addColumn(self, columnName: str, typehint: type = None):
+        self.fmt['cols'].append(
+            [columnName,
+             self.sqliteTypes[typehint] if typehint is not None else ""]
+        )
 
     def addUniques(self, uniqueColumns: list):
         if not all((i in self._getColumnNames() for i in uniqueColumns)):
             raise ValueError("Invalid column found.")
-        self.fmt['conds'].append("UNIQUE(%s)" % (','.join(uniqueColumns)))
+        self.fmt['conds'].append("UNIQUE(%s)" % (', '.join(uniqueColumns)))
 
     def addForeignKey(self, childParentPair: list):
         """
@@ -230,45 +252,3 @@ class FormatSpecifier:
             parents[(tablename, columnname)].append(
                 keydesc[0])  # Map parent -> child column
         return parents
-
-
-# %%
-if __name__ == "__main__":
-    fmtspec = FormatSpecifier()
-    fmtspec.addColumn('col1', int)
-    fmtspec.addColumn('col2', str)
-
-    try:
-        fmtspec.addUniques(['col2', 'col3'])
-    except Exception as e:
-        print(e)
-        print("Should raise exception for invalid column.")
-
-    fmtspec.addUniques(['col1', 'col2'])
-
-    # Add more uniques
-    fmtspec.addColumn('col3', float)
-    fmtspec.addColumn('col4', float)
-    fmtspec.addUniques(['col3', 'col4'])
-
-    # Add some foreign keys
-    fmtspec.addForeignKey(['col1', 'parent_table(parentcolA)'])
-    fmtspec.addForeignKey(['col2', 'parent_table(parentcolB)'])
-
-    print(fmtspec.generate())
-
-    # %% Test fromSql
-    from ._core import StatementGeneratorMixin
-
-    stmt = StatementGeneratorMixin._makeCreateTableStatement(
-        fmtspec.generate(), 'table1')
-    print(stmt)
-    genFmtspec = FormatSpecifier.fromSql(stmt)
-    print("\n\n\n")
-
-    print(genFmtspec.generate())
-    # print(genFmtspec.generate()['foreign_keys'])
-    # print(id(genFmtspec.fmt))
-    # print(fmtspec.generate())
-    # print(id(fmtspec.fmt))
-    assert (genFmtspec.fmt == fmtspec.fmt)
