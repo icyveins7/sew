@@ -315,6 +315,21 @@ class StatementGeneratorMixin:
         return stmt
 
     @staticmethod
+    def _makeUpdateStatement(
+        tablename: str, fmt: dict,
+        conditions: list = None,
+        encloseTableName: bool = True
+    ):
+        stmt = "update %s set %s where %s" % (
+            StatementGeneratorMixin._encloseTableName(
+                tablename) if encloseTableName else tablename,
+            StatementGeneratorMixin._makeTableColumns(
+                fmt),  # TODO: this is wrong
+            StatementGeneratorMixin._stitchConditions(conditions)
+        )
+        return stmt
+
+    @staticmethod
     def _makeDropStatement(tablename: str):
         stmt = "drop table %s" % tablename
         return stmt
@@ -821,6 +836,50 @@ class TableProxy(StatementGeneratorMixin):
         if commitNow:
             self._parent.con.commit()
 
+        return stmt
+
+    def updateOne(
+        self,
+        columnNames: list,
+        conditions: list,
+        values: list,
+        encloseTableName: bool = True,
+        commitNow: bool = False
+    ):
+        '''
+        Performs an update statement for just one row of data.
+
+        Parameters
+        ----------
+        columnNames : list
+            Columns to update.
+        conditions : list
+            Conditions of the update.
+        values : list
+            Values to update.
+        encloseTableName : bool, optional
+            Encloses the table name in quotes to
+            allow for certain table names which may fail;
+            for example, this is necessary if
+            the table name starts with digits.
+            The default is True.
+        commitNow : bool, optional
+            Calls commit on the database connection
+            after the transaction if True.
+            The default is False.
+
+        Returns
+        -------
+        stmt : str
+            The actual sqlite statement that was executed.
+        '''
+        stmt = self._makeUpdateStatement(
+            self._tbl, columnNames, conditions, encloseTableName
+        )
+        self._parent.cur.execute(stmt, values)
+
+        if commitNow:
+            self._parent.con.commit()
         return stmt
 
     def createView(
