@@ -25,7 +25,28 @@ class TestCorrectness(unittest.TestCase):
         )
         # self.d.reloadTables()
 
+    def test_column_getter(self):
+        self.assertEqual(
+            self.d['correctness'].columnNames,
+            ["col1", "col2", "col3"]
+        )
+        columns = self.d['correctness'].columns
+        self.assertEqual(
+            columns,
+            self.d['correctness'].cols
+        )
+
+        # Check each object's parameters
+        for i in range(3):
+            self.assertEqual(columns[i].typehint, float)
+            self.assertEqual(columns[i].tablename, 'correctness')
+
+        self.assertEqual(columns[0].name, 'col1')
+        self.assertEqual(columns[1].name, 'col2')
+        self.assertEqual(columns[2].name, 'col3')
+
     # %%
+
     def test_create_table_insert_drop(self):
         fmtspec = sew.FormatSpecifier()
         fmtspec.addColumn('c1', int)

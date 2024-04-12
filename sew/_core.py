@@ -526,7 +526,7 @@ class TableProxy(StatementGeneratorMixin):
     @property
     def columns(self):
         '''
-        Dictionary of ColumnProxy objects based on the table columns.
+        Container of ColumnProxy objects based on the table columns.
         '''
         return self._cols
 
