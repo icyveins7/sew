@@ -69,6 +69,12 @@ d.executemany() # Same as d.cur.executemany
 d.commit() # Same as d.con.commit
 ```
 
+Of course, if you need a second cursor to iterate over separate statements simultaenously, you can still request a new one:
+
+```python
+cur2 = d.con.cursor()
+```
+
 You also get a context manager for free:
 
 ```python
@@ -177,6 +183,25 @@ You can also insert specific columns:
 d["mytablename"].insertOne(
     {'col1': 1, 'col2': 2}, # Only insert 2 column values, leaving col3 NULL
     orReplace=True # use a replace instead of insert
+)
+```
+
+## Updates
+
+Updates are performed like so:
+
+```python
+# Columns are col1, col2, col3
+d["mytbl"].updateOne(
+    4, 5, 6, # The format is just like insertOne
+    conditions=["rowid=1"] # updates the row where rowid is 1
+) # This would update all column values
+
+# Usually, you would only want to update a few columns,
+# so you would use the dict syntax just like insertOne
+d["mytbl"].updateOne(
+    {"col1": 7, "col3": 9},
+    conditions=["rowid=2"]
 )
 ```
 
