@@ -14,6 +14,29 @@ structure we keep.
 
 class TestStatements(unittest.TestCase):
 
+    def test_makeUpdateStatements(self):
+        stmt = sew.StatementGeneratorMixin._makeUpdateStatement(
+            "mytbl",
+            ["col1", "col2"],
+            conditions=["rowid=5"],
+            encloseTableName=True
+        )
+        self.assertEqual(
+            stmt,
+            'update "mytbl" set col1=?, col2=? where rowid=5'
+        )
+
+        # Also check without any conditions
+        stmt = sew.StatementGeneratorMixin._makeUpdateStatement(
+            "mytbl",
+            ["col1", "col2"],
+            encloseTableName=True
+        )
+        self.assertEqual(
+            stmt,
+            'update "mytbl" set col1=?, col2=?'
+        )
+
     def test_makeAlterTableStatements(self):
         # Check ADD COLUMN
         stmt = sew.StatementGeneratorMixin._makeAlterTableAddColumnStatement(

@@ -74,6 +74,37 @@ class TestCorrectness(unittest.TestCase):
         self.assertEqual(columns[1].typehint, str)
         self.assertEqual(columns[1].name, 'c3')
 
+    def test_insert_then_update(self):
+        self.d['correctness'].insertOne(
+            1.0, 2.0, 3.0
+        )
+        self.d['correctness'].insertOne(
+            4.0, 5.0, 6.0
+        )
+        # Update all for first row
+        self.d['correctness'].updateOne(
+            10.0, 20.0, 30.0, conditions=['rowid=1']
+        )
+        self.d['correctness'].select("*", ['rowid=1'])
+        checkrow = self.d.fetchone()
+        self.assertEqual(checkrow[0], 10.0)
+        self.assertEqual(checkrow[1], 20.0)
+        self.assertEqual(checkrow[2], 30.0)
+
+        # Update a few for second row
+        self.d['correctness'].updateOne(
+            {
+                'col1': 123.0,
+                'col3': 456.0
+            },
+            conditions=['col2=5.0']
+        )
+        self.d['correctness'].select("*", ['col2=5.0'])
+        checkrow = self.d.fetchone()
+        self.assertEqual(checkrow[0], 123.0)
+        self.assertEqual(checkrow[1], 5.0)
+        self.assertEqual(checkrow[2], 456.0)
+
     # %%
 
     def test_formatSpecifier_getter(self):

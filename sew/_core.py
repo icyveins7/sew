@@ -316,15 +316,15 @@ class StatementGeneratorMixin:
 
     @staticmethod
     def _makeUpdateStatement(
-        tablename: str, fmt: dict,
+        tablename: str,
+        updatedColumns: list,
         conditions: list = None,
         encloseTableName: bool = True
     ):
-        stmt = "update %s set %s where %s" % (
+        stmt = "update %s set %s%s" % (
             StatementGeneratorMixin._encloseTableName(
                 tablename) if encloseTableName else tablename,
-            StatementGeneratorMixin._makeTableColumns(
-                fmt),  # TODO: this is wrong
+            ", ".join(["%s=?" % (i) for i in updatedColumns]),
             StatementGeneratorMixin._stitchConditions(conditions)
         )
         return stmt
@@ -535,7 +535,7 @@ class TableProxy(StatementGeneratorMixin):
         '''
         List of column names of the current table.
         '''
-        return list(self._cols.keys())
+        return self._cols.keys()
 
     # These are the actual user methods
     def select(self,
@@ -549,7 +549,7 @@ class TableProxy(StatementGeneratorMixin):
         Parameters
         ----------
         columnNames : list
-            List of columns to extract. 
+            List of columns to extract.
             A single column may be specified as a string.
             If all columns are desired, the string "*" may be specified.
             Examples:
@@ -840,29 +840,51 @@ class TableProxy(StatementGeneratorMixin):
 
     def updateOne(
         self,
-        columnNames: list,
-        conditions: list,
-        values: list,
+        *args,
+        conditions: list = None,
         encloseTableName: bool = True,
         commitNow: bool = False
     ):
         '''
         Performs an update statement for just one row of data.
+        This method enforces parameter substitution for the
+        updated values.
 
         Parameters
         ----------
-        columnNames : list
-            Columns to update.
+        *args : iterable or dict
+            Either an iterable to update all columns,
+            or a dictionary to update specific columns,
+            like insertOne().
+
+            Simply place them one after another before the keyword args.
+            In this mode, all columns must have a value updated
+            (see dict updates below if you have missing values).
+            Example:
+                Two REAL columns
+                updateOne(10.0, 20.0)
+
+            Can also use a dictionary to used the named
+            column format for insertion.
+            Only the keys present in the dictionary will be updated.
+            Example:
+                # Columns are ['col1','col2','col3']
+                row = {
+                    'col1': 11,
+                    'col3': 22
+                }
+                updateOne(row)
+
         conditions : list
             Conditions of the update.
-        values : list
-            Values to update.
+
         encloseTableName : bool, optional
             Encloses the table name in quotes to
             allow for certain table names which may fail;
             for example, this is necessary if
             the table name starts with digits.
             The default is True.
+
         commitNow : bool, optional
             Calls commit on the database connection
             after the transaction if True.
@@ -873,10 +895,29 @@ class TableProxy(StatementGeneratorMixin):
         stmt : str
             The actual sqlite statement that was executed.
         '''
-        stmt = self._makeUpdateStatement(
-            self._tbl, columnNames, conditions, encloseTableName
-        )
-        self._parent.cur.execute(stmt, values)
+        if isinstance(args[0], tuple) or isinstance(args[0], list):
+            raise TypeError(
+                "Do not enclose the arguments in a list/tuple yourself!")
+
+        if isinstance(args[0], dict):
+            keys = list(args[0].keys())
+            stmt = self._makeUpdateStatement(
+                self._tbl,
+                keys,
+                conditions,
+                encloseTableName
+            )
+            self._parent.cur.execute(stmt, [args[0][k] for k in keys])
+
+        else:
+            # Generate for all columns
+            stmt = self._makeUpdateStatement(
+                self._tbl,
+                self.columnNames,
+                conditions,
+                encloseTableName
+            )
+            self._parent.cur.execute(stmt, (args))
 
         if commitNow:
             self._parent.con.commit()

@@ -114,3 +114,6 @@ class ColumnProxyContainer:
             return self._columns[key]
         else:
             raise TypeError("Key for ColumnProxyContainer must be str or int")
+
+    def keys(self):
+        return [c.name for c in self._columns]
