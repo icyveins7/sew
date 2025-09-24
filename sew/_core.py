@@ -12,6 +12,7 @@ from .formatSpec import FormatSpecifier
 
 #%% Basic container, the most barebones
 class SqliteContainer:
+    # TODO: we should extend sqlite3.Row so that __repr__ and/or __str__ have more useful info
     def __init__(self, dbpath: str, row_factory: type=sq.Row, pragma_foreign_keys: bool=True):
         '''
         Instantiates an sqlite database container.
@@ -388,6 +389,7 @@ class CommonMethodMixin(StatementGeneratorMixin):
         results : 
             Sqlite results from fetchall(). This is usually used for debugging.
         '''
+        # TODO: maybe just using PRAGMA table_info would be better.. this is very unreliable
         stmt = self._makeSelectStatement(["name","sql","type"], "sqlite_master",
                                          conditions=["type='table' or type='view'"])
         self.cur.execute(stmt)
