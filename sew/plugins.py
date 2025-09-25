@@ -8,6 +8,7 @@ Created on Sun Jan 15 22:14:34 2023
 
 from ._core import *
 from .formatSpec import FormatSpecifier
+from .customrow import CustomRow
 import pandas as pd
 import numpy as np
 
@@ -179,7 +180,7 @@ class NumpyTableProxy(TableProxy):
         '''
 
         # Require use of sqlite.Row
-        if self._parent.con.row_factory is not sq.Row:
+        if self._parent.con.row_factory is not sq.Row and self._parent.con.row_factory is not CustomRow:
             raise ValueError("Cannot use fetchAsNumpy() unless sqlite3.Row is set as row_factory.")
 
         # We will return a dictionary of column names

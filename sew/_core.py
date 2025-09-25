@@ -8,20 +8,14 @@ Created on Mon Dec  5 17:23:06 2022
 import sqlite3 as sq
 import re
 
+from .customrow import CustomRow
 from .formatSpec import FormatSpecifier
 from .column import ColumnProxy, ColumnProxyContainer
 from .condition import Condition
 
 # %% Basic container, the most barebones
-
-
 class SqliteContainer:
-    def __init__(
-        self,
-        dbpath: str,
-        row_factory: type = sq.Row,
-        pragma_foreign_keys: bool = True
-    ):
+    def __init__(self, dbpath: str, row_factory: type = CustomRow, pragma_foreign_keys: bool = True):
         '''
         Instantiates an sqlite database container.
 
@@ -31,8 +25,7 @@ class SqliteContainer:
             The database to connect to (either a filepath or ":memory:").
             See sqlite3.connect() for more information.
         row_factory : type, optional
-            The row factory for the sqlite3 connection.
-            The default is the in-built sqlite3.Row.
+            The row factory for the sqlite3 connection. The default is a CustomRow, which is a tiny extension to the inbuilt sqlite3.Row.
         pragma_foreign_keys : bool, optional
             Turns on PRAGMA FOREIGN_KEYS. The default is True.
         '''
@@ -1177,10 +1170,9 @@ class CommonMethodMixin(StatementGeneratorMixin):
         results :
             Sqlite results from fetchall(). This is usually used for debugging.
         '''
-        stmt = self._makeSelectStatement(
-            ["name", "sql", "type"], "sqlite_master",
-            conditions=["type='table' or type='view'"]
-        )
+        # TODO: maybe just using PRAGMA table_info would be better.. this is very unreliable
+        stmt = self._makeSelectStatement(["name","sql","type"], "sqlite_master",
+                                         conditions=["type='table' or type='view'"])
         self.cur.execute(stmt)
         results = self.cur.fetchall()
         self._tables.clear()
@@ -1573,8 +1565,7 @@ class DataTableProxy(TableProxy):
 
 # %% Inherited class of all the above
 class Database(CommonRedirectMixin, CommonMethodMixin, SqliteContainer):
-    def __init__(self, dbpath: str, row_factory: type = sq.Row,
-                 pragma_foreign_keys: bool = True):
+    def __init__(self, dbpath: str, row_factory: type=CustomRow, pragma_foreign_keys: bool=True):
         '''
         Instantiates an sqlite database container
         with all extra functionality included.
@@ -1593,8 +1584,7 @@ class Database(CommonRedirectMixin, CommonMethodMixin, SqliteContainer):
             The database to connect to (either a filepath or ":memory:").
             See sqlite3.connect() for more information.
         row_factory : type, optional
-            The row factory for the sqlite3 connection.
-            The default is the in-built sqlite3.Row.
+            The row factory for the sqlite3 connection. The default is a CustomRow, which is a tiny extension to the inbuilt sqlite3.Row.
         pragma_foreign_keys : bool, optional
             Turns on PRAGMA FOREIGN_KEYS. The default is True.
         '''
