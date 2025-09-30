@@ -3,6 +3,18 @@
 Created on Mon Dec 19 16:41:17 2022
 
 @author: seo
+
+TODO list:
+- Rework to use internal pragma results
+- In order of priority, PRAGMA table_info, PRAGMA foreign_key_list, PRAGMA index_info
+
+table_info typical result:
+{'cid': 0, 'name': 'col1', 'type': 'INTEGER', 'notnull': 0, 'dflt_value': None, 'pk': 0}
+
+foreing_key_list typical result:
+{'id': 0, 'seq': 0, 'table': 'parent', 'from': 'col2', 'to': 'id', 'on_update': 'NO ACTION', 'on_delete': 'NO ACTION', 'match': 'NONE'}
+
+Probably just use these to specify formats, or at least a watered down version of these?
 """
 
 import re
@@ -226,6 +238,30 @@ class FormatSpecifier:
 
         # Call the two helper methods
         cols, conds, foreign_keys = FormatSpecifier._splitColumnsSql(fmtstr)
+        return cls(cols, conds, foreign_keys)
+
+    @classmethod
+    def fromPragma(cls, tableInfos: list, foreign_key_list: list):
+        """
+        Factory method to generate format specifier from the output of a 
+        PRAGMA table_info() call.
+
+        Parameters
+        ----------
+        tableInfos : list
+            Results returned from PRAGMA table_info().
+        """
+        cols = list()
+        conds = list()
+        foreign_keys = list()
+        for info in tableInfos:
+            cols.append(
+                [info['name'], info['type']]
+            )
+        for fk in foreign_key_list:
+            print(fk)
+        # TODO: i am not handling 'notnull', 'dflt_value', and 'pk'
+        # TODO: also didn't handle UNIQUE conditions here?
         return cls(cols, conds, foreign_keys)
 
     @staticmethod

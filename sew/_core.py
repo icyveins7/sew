@@ -987,7 +987,7 @@ class TableProxy(StatementGeneratorMixin):
         return stmt
 
     # Foreign-key specific methods
-    def retrieveParentRow(self, row: sq.Row, foreignKey: str = None):
+    def retrieveParentRow(self, row: sq.Row, foreignKey: str | None = None):
         """
         Performs a select on the associated
         parent table and row specified by the foreign key
@@ -1061,7 +1061,9 @@ class CommonMethodMixin(StatementGeneratorMixin):
         self,
         table_name: str,
         table_sql: str,
-        table_type: str
+        table_type: str,
+        tableInfos: list = None, # TODO: for now, this is an additional thing we add from PRAGMA table_info?
+        foreignKeyList: list = [], # TODO: for now, this is an additional thing we add from PRAGMA index_info?
     ) -> dict:
         """
         Parses the parameters of a table and appropriately
@@ -1102,9 +1104,15 @@ class CommonMethodMixin(StatementGeneratorMixin):
             for dt in assocDataTables:
                 dataToMeta[dt] = table_name
         else:
-            self._tables[table_name] = TableProxy(
-                self, table_name,
-                FormatSpecifier.fromSql(table_sql).generate())
+            if tableInfos is not None:
+                print(f"Using pragma info for {table_name}")
+                self._tables[table_name] = TableProxy(
+                    self, table_name,
+                    FormatSpecifier.fromPragma(tableInfos, foreignKeyList).generate())
+            else:
+                self._tables[table_name] = TableProxy(
+                    self, table_name,
+                    FormatSpecifier.fromSql(table_sql).generate())
 
         return dataToMeta
 
@@ -1171,6 +1179,7 @@ class CommonMethodMixin(StatementGeneratorMixin):
             Sqlite results from fetchall(). This is usually used for debugging.
         '''
         # TODO: maybe just using PRAGMA table_info would be better.. this is very unreliable
+
         stmt = self._makeSelectStatement(["name","sql","type"], "sqlite_master",
                                          conditions=["type='table' or type='view'"])
         self.cur.execute(stmt)
@@ -1179,8 +1188,10 @@ class CommonMethodMixin(StatementGeneratorMixin):
 
         dataToMeta = dict()
         for result in results:
+            self.cur.execute(f"PRAGMA table_info({result['name']})")
+            tableInfos = self.cur.fetchall()
             newDtm = self._parseTable(
-                result['name'], result['sql'], result['type']
+                result['name'], result['sql'], result['type'], tableInfos
             )
             # Merge into dataToMeta
             dataToMeta.update(newDtm)
